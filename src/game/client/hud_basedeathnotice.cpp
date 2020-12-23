@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Draws CSPort's death notices
 //
@@ -9,8 +9,8 @@
 #include "hud_macros.h"
 #include "c_playerresource.h"
 #include "iclientmode.h"
-#include <vgui_controls/Controls.h>
-#include <vgui_controls/Panel.h>
+#include <vgui_controls/controls.h>
+#include <vgui_controls/panel.h>
 #include <vgui/ISurface.h>
 #include <vgui/ILocalize.h>
 #include <KeyValues.h>
@@ -18,9 +18,7 @@
 #include "clientmode_shared.h"
 #include "c_baseplayer.h"
 #include "c_team.h"
-#include "tf_shareddefs.h"
-#include "tf_shareddefs.h"
-#include "tf_gamerules.h"
+#include "shareddefs.h"
 
 #include "hud_basedeathnotice.h"
 
@@ -39,7 +37,7 @@ using namespace vgui;
 CHudBaseDeathNotice::CHudBaseDeathNotice( const char *pElementName ) :
 	CHudElement( pElementName ), BaseClass( NULL, "HudDeathNotice" )
 {
-	vgui::Panel *pParent = g_pClientMode->GetViewport();
+	vgui::Panel *pParent = GetClientMode()->GetViewport();
 	SetParent( pParent );
 
 }
@@ -61,11 +59,10 @@ void CHudBaseDeathNotice::ApplySchemeSettings( IScheme *scheme )
 void CHudBaseDeathNotice::Init( void )
 {
 	ListenForGameEvent( "player_death" );
-	ListenForGameEvent( "object_destroyed" );	
-	ListenForGameEvent( "teamplay_point_captured" );
-	ListenForGameEvent( "teamplay_capture_blocked" );
-	ListenForGameEvent( "teamplay_flag_event" );
-	ListenForGameEvent( "rd_robot_killed" );
+	//ListenForGameEvent( "object_destroyed" );	
+	//ListenForGameEvent( "teamplay_point_captured" );
+	//ListenForGameEvent( "teamplay_capture_blocked" );
+	//ListenForGameEvent( "teamplay_flag_event" );
 }
 
 //-----------------------------------------------------------------------------
@@ -87,7 +84,7 @@ bool CHudBaseDeathNotice::ShouldDraw( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-Color CHudBaseDeathNotice::GetTeamColor( int iTeamNumber, bool bLocalPlayerInvolved /* = false */ )
+Color CHudBaseDeathNotice::GetTeamColor( int iTeamNumber, bool localplayerinvolved )
 {
 	// By default, return the standard team color.  Subclasses may override this.
 	return g_PR->GetTeamColor( iTeamNumber );
@@ -115,10 +112,7 @@ void CHudBaseDeathNotice::Paint()
 		DeathNoticeItem &msg = m_DeathNotices[i];
 		
 		CHudTexture *icon = msg.iconDeath;
-		CHudTexture *iconPostKillerName = msg.iconPostKillerName;
-		CHudTexture *iconPreKillerName = msg.iconPreKillerName;
-		CHudTexture *iconPostVictimName = msg.iconPostVictimName;
-
+						
 		wchar_t victim[256]=L"";
 		wchar_t killer[256]=L"";
 
@@ -129,19 +123,10 @@ void CHudBaseDeathNotice::Paint()
 
 		int iVictimTextWide = UTIL_ComputeStringWidth( m_hTextFont, victim ) + xSpacing;
 		int iDeathInfoTextWide= msg.wzInfoText[0] ? UTIL_ComputeStringWidth( m_hTextFont, msg.wzInfoText ) + xSpacing : 0;
-		int iDeathInfoEndTextWide= msg.wzInfoTextEnd[0] ? UTIL_ComputeStringWidth( m_hTextFont, msg.wzInfoTextEnd ) + xSpacing : 0;
-
 		int iKillerTextWide = killer[0] ? UTIL_ComputeStringWidth( m_hTextFont, killer ) + xSpacing : 0;
 		int iLineTall = m_flLineHeight;
 		int iTextTall = surface()->GetFontTall( m_hTextFont );
 		int iconWide = 0, iconTall = 0, iDeathInfoOffset = 0, iVictimTextOffset = 0, iconActualWide = 0;
-		
-		int iPreKillerTextWide = msg.wzPreKillerText[0] ? UTIL_ComputeStringWidth( m_hTextFont, msg.wzPreKillerText ) - xSpacing : 0;
-		
-		int iconPrekillerWide = 0, iconPrekillerActualWide = 0, iconPrekillerTall = 0;
-		int iconPostkillerWide = 0, iconPostkillerActualWide = 0, iconPostkillerTall = 0;
-
-		int iconPostVictimWide = 0, iconPostVictimActualWide = 0, iconPostVictimTall = 0;
 
 		// Get the local position for this notice
 		if ( icon )
@@ -158,55 +143,7 @@ void CHudBaseDeathNotice::Paint()
 			iconTall *= flScale;
 			iconWide *= flScale;
 		}
-
-		if ( iconPreKillerName )
-		{
-			iconPrekillerActualWide = iconPreKillerName->EffectiveWidth( 1.0f );
-			iconPrekillerWide = iconPrekillerActualWide;
-			iconPrekillerTall = iconPreKillerName->EffectiveHeight( 1.0f );
-
-			int iconTallDesired = iLineTall - YRES( 2 );
-			Assert( 0 != iconTallDesired );
-			float flScale = (float)iconTallDesired / (float)iconPrekillerTall;
-
-			iconPrekillerActualWide *= flScale;
-			iconPrekillerTall *= flScale;
-			iconPrekillerWide *= flScale;
-		}
-
-		if ( iconPostKillerName )
-		{
-			iconPostkillerActualWide = iconPostKillerName->EffectiveWidth( 1.0f );
-			iconPostkillerWide = iconPostkillerActualWide;
-			iconPostkillerTall = iconPostKillerName->EffectiveHeight( 1.0f );
-
-			int iconTallDesired = iLineTall-YRES(2);
-			Assert( 0 != iconTallDesired );
-			float flScale = (float) iconTallDesired / (float) iconPostkillerTall;
-
-			iconPostkillerActualWide *= flScale;
-			iconPostkillerTall *= flScale;
-			iconPostkillerWide *= flScale;
-		}
-		
-		if ( iconPostVictimName )
-		{
-			iconPostVictimActualWide = iconPostVictimName->EffectiveWidth( 1.0f );
-			iconPostVictimWide = iconPostVictimActualWide;
-			iconPostVictimTall = iconPostVictimName->EffectiveHeight( 1.0f );
-
-			int iconTallDesired = iLineTall - YRES( 2 );
-			Assert( 0 != iconTallDesired );
-			float flScale = (float)iconTallDesired / (float)iconPostVictimTall;
-
-			iconPostVictimActualWide *= flScale;
-			iconPostVictimTall *= flScale;
-			iconPostVictimWide *= flScale;
-		}
-
-		int iTotalWide = iKillerTextWide + iconWide + iVictimTextWide + iDeathInfoTextWide + iDeathInfoEndTextWide + ( xMargin * 2 );
-		iTotalWide += iconPrekillerWide + iconPostkillerWide + iPreKillerTextWide + iconPostVictimWide;
-
+		int iTotalWide = iKillerTextWide + iconWide + iVictimTextWide + iDeathInfoTextWide + ( xMargin * 2 );
 		int y = yStart + ( ( iLineTall + m_flLineSpacing ) * i );				
 		int yText = y + ( ( iLineTall - iTextTall ) / 2 );
 		int yIcon = y + ( ( iLineTall - iconTall ) / 2 );
@@ -221,46 +158,19 @@ void CHudBaseDeathNotice::Paint()
 		Vertex_t vert[NUM_BACKGROUND_COORD];
 		GetBackgroundPolygonVerts( x, y+1, x+iTotalWide, y+iLineTall-1, ARRAYSIZE( vert ), vert );		
 		surface()->DrawSetTexture( -1 );
-		surface()->DrawSetColor( GetBackgroundColor ( i ) );
+		surface()->DrawSetColor( msg.bLocalPlayerInvolved ? m_clrLocalBGColor : m_clrBaseBGColor );
 		surface()->DrawTexturedPolygon( ARRAYSIZE( vert ), vert );
 
 		x += xMargin;
-	
-		// prekiller icon
-		if ( iconPreKillerName )
-		{
-			int yPreIconTall = y + ( ( iLineTall - iconPrekillerTall ) / 2 );
-			iconPreKillerName->DrawSelf( x, yPreIconTall, iconPrekillerActualWide, iconPrekillerTall, m_clrIcon);
-			x += iconPrekillerWide + xSpacing;
-		}
-
+			
 		if ( killer[0] )
 		{
+			//Draw drop shadow
+			//DrawText( x+1, yText+1, m_hTextFont, Color(0,0,0,255), killer );
+
 			// Draw killer's name
 			DrawText( x, yText, m_hTextFont, GetTeamColor( msg.Killer.iTeam, msg.bLocalPlayerInvolved ), killer );
 			x += iKillerTextWide;
-		}
-
-		// prekiller text
-		if ( msg.wzPreKillerText[0] )
-		{
-			x += xSpacing;
-			DrawText( x + iDeathInfoOffset, yText, m_hTextFont, GetInfoTextColor( i ), msg.wzPreKillerText );
-			x += iPreKillerTextWide;
-		}
-
-		// postkiller icon
-		if ( iconPostKillerName )
-		{
-			int yPreIconTall = y + ( ( iLineTall - iconPostkillerTall ) / 2 );
-			iconPostKillerName->DrawSelf( x, yPreIconTall, iconPostkillerActualWide, iconPostkillerTall, m_clrIcon );
-			x += iconPostkillerWide + xSpacing;
-		}
-
-		// Draw glow behind weapon icon to show it was a crit death
-		if ( msg.bCrit && msg.iconCritDeath )
-		{
-			msg.iconCritDeath->DrawSelf( x, yIcon, iconActualWide, iconTall, m_clrIcon );
 		}
 
 		// Draw death icon
@@ -279,27 +189,19 @@ void CHudBaseDeathNotice::Paint()
 				iVictimTextOffset -= iDeathInfoTextWide;
 			}
 
-			DrawText( x + iDeathInfoOffset, yText, m_hTextFont, GetInfoTextColor( i ), msg.wzInfoText );
+			//Draw Drop shadow
+			//DrawText( (x + iDeathInfoOffset)+1, yText+1, m_hTextFont, Color(0,0,0,255), msg.wzInfoText );
+
+			DrawText( x + iDeathInfoOffset, yText, m_hTextFont, GetTeamColor( msg.Victim.iTeam, msg.bLocalPlayerInvolved ), msg.wzInfoText );
 			x += iDeathInfoTextWide;
 		}
+
+		//Draw a drop shadow
+		//DrawText( (x + iVictimTextOffset)+1, yText+1, m_hTextFont, Color(0,0,0,255), victim );
 
 		// Draw victims name
 		DrawText( x + iVictimTextOffset, yText, m_hTextFont, GetTeamColor( msg.Victim.iTeam, msg.bLocalPlayerInvolved ), victim );
 		x += iVictimTextWide;
-
-		// postkiller icon
-		if ( iconPostVictimName )
-		{
-			int yPreIconTall = y + ( ( iLineTall - iconPostVictimTall ) / 2 );
-			iconPostVictimName->DrawSelf( x, yPreIconTall, iconPostVictimActualWide, iconPostVictimTall, m_clrIcon );
-			x += iconPostkillerWide + xSpacing;
-		}
-
-		// Draw Additional Text on the end of the victims name
-		if ( msg.wzInfoTextEnd[0] )
-		{
-			DrawText( x , yText, m_hTextFont, GetInfoTextColor( i ), msg.wzInfoTextEnd );
-		}
 	}
 }
 
@@ -353,17 +255,6 @@ void CHudBaseDeathNotice::RetireExpiredDeathNotices()
 }
 
 //-----------------------------------------------------------------------------
-// Purpose:
-//-----------------------------------------------------------------------------
-bool CHudBaseDeathNotice::EventIsPlayerDeath( const char* eventName )
-{
-	if ( FStrEq( eventName, "player_death" ) )
-		return true;
-	else
-		return false;
-}
-
-//-----------------------------------------------------------------------------
 // Purpose: Server's told us that someone's died
 //-----------------------------------------------------------------------------
 void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
@@ -378,55 +269,41 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 		return;
 	}
 
-	int iLocalPlayerIndex = GetLocalPlayerIndex();
 	const char *pszEventName = event->GetName();
 	
-	bool bPlayerDeath = EventIsPlayerDeath( pszEventName );
-	bool bObjectDeath = FStrEq( pszEventName, "object_destroyed" );
-
-	bool bIsFeignDeath = event->GetInt( "death_flags" ) & TF_DEATH_FEIGN_DEATH;
-	if ( bPlayerDeath )
-	{
-		if ( !ShouldShowDeathNotice( event ) )
-			return;
-
-		if ( bIsFeignDeath )
-		{
-			// Only display fake death messages to the enemy team.
-			int victimid = event->GetInt( "userid" );
-			int victim = engine->GetPlayerForUserID( victimid );
-			CBasePlayer *pVictim = UTIL_PlayerByIndex( victim );
-			CBasePlayer *pLocalPlayer = CBasePlayer::GetLocalPlayer();
-			if ( pVictim && pLocalPlayer &&
-				( pVictim->GetTeamNumber() == pLocalPlayer->GetTeamNumber() ) )
-			{
-				return;
-			}
-
-			if ( iLocalPlayerIndex == victim )
-			{
-				return;
-			}
-		}
-	}
-
 	// Add a new death message.  Note we always look it up by index rather than create a reference or pointer to it;
 	// additional messages may get added during this function that cause the underlying array to get realloced, so don't
 	// ever keep a pointer to memory here.
-	int iMsg = -1;
-	if ( bPlayerDeath )
-	{
-		iMsg = UseExistingNotice( event );
-	}
-	if ( iMsg == -1 )
-	{
-		iMsg = AddDeathNoticeItem();
-	}
+	int iMsg = AddDeathNoticeItem();
+	int iLocalPlayerIndex = GetLocalPlayerIndex();
+
+	bool bPlayerDeath = FStrEq( pszEventName, "player_death" );
+	bool bObjectDeath = FStrEq( pszEventName, "object_destroyed" );
 
 	if ( bPlayerDeath || bObjectDeath )
 	{
-		int victim = engine->GetPlayerForUserID( event->GetInt( "userid" ) );
-		int killer = engine->GetPlayerForUserID( event->GetInt( "attacker" ) );
+		int t_userID = event->GetInt( "userid" );
+		int t_Attacker = event->GetInt( "attacker" );
+		int victim = 0;//engine->GetPlayerForUserID( t_userID );
+		int killer = 0;//engine->GetPlayerForUserID( t_Attacker );
+
+		for (int i = 1; i<=gpGlobals->maxClients; i++ )
+		{
+			C_BasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( !pPlayer )
+				continue;
+
+			if ( pPlayer->GetUserID() == t_userID )
+			{
+				victim = i;
+			}
+			if ( pPlayer->GetUserID() == t_Attacker )
+			{
+				killer = i;
+			}
+		}
+
 		const char *killedwith = event->GetString( "weapon" );
 		const char *killedwithweaponlog = event->GetString( "weapon_logclassname" );
 
@@ -438,7 +315,7 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 		}
 
 		// Get the names of the players
-		const char *killer_name = ( killer > 0 ) ? g_PR->GetPlayerName( killer ) : "";
+		const char *killer_name = g_PR->GetPlayerName( killer );
 		const char *victim_name = g_PR->GetPlayerName( victim );
 		if ( !killer_name )
 		{
@@ -456,25 +333,8 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 		{
 			bLocalPlayerInvolved = true;
 		}
-
-		if ( event->GetInt( "death_flags" ) & TF_DEATH_AUSTRALIUM )
-		{
-			m_DeathNotices[iMsg].bCrit= true;
-			m_DeathNotices[iMsg].iconCritDeath = GetIcon( "d_australium", bLocalPlayerInvolved ? kDeathNoticeIcon_Inverted : kDeathNoticeIcon_Standard );
-		}
-		else if ( event->GetInt( "damagebits" ) & DMG_CRITICAL )
-		{
-			m_DeathNotices[iMsg].bCrit= true;
-			m_DeathNotices[iMsg].iconCritDeath = GetIcon( "d_crit", bLocalPlayerInvolved ? kDeathNoticeIcon_Inverted : kDeathNoticeIcon_Standard );
-		}
-		else
-		{
-			m_DeathNotices[iMsg].bCrit= false;
-			m_DeathNotices[iMsg].iconCritDeath = NULL;
-		}
-
 		m_DeathNotices[iMsg].bLocalPlayerInvolved = bLocalPlayerInvolved;
-		m_DeathNotices[iMsg].Killer.iTeam = ( killer > 0 ) ? g_PR->GetTeam( killer ) : 0;
+		m_DeathNotices[iMsg].Killer.iTeam = g_PR->GetTeam( killer );
 		m_DeathNotices[iMsg].Victim.iTeam = g_PR->GetTeam( victim );
 		Q_strncpy( m_DeathNotices[iMsg].Killer.szName, killer_name, ARRAYSIZE( m_DeathNotices[iMsg].Killer.szName ) );
 		Q_strncpy( m_DeathNotices[iMsg].Victim.szName, victim_name, ARRAYSIZE( m_DeathNotices[iMsg].Victim.szName ) );
@@ -487,12 +347,7 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 			m_DeathNotices[iMsg].bSelfInflicted = true;
 			m_DeathNotices[iMsg].Killer.szName[0] = 0;
 
-			if ( event->GetInt( "death_flags" ) & TF_DEATH_PURGATORY )
-			{
-				// special case icon for dying in purgatory
-				Q_strncpy( m_DeathNotices[iMsg].szIcon, "d_purgatory", ARRAYSIZE( m_DeathNotices[iMsg].szIcon ) );
-			}
-			else if ( event->GetInt( "damagebits" ) & DMG_FALL )
+			if ( event->GetInt( "damagebits" ) & DMG_FALL )
 			{
 				// special case text for falling death
 				V_wcsncpy( m_DeathNotices[iMsg].wzInfoText, g_pVGuiLocalize->Find( "#DeathMsg_Fall" ), sizeof( m_DeathNotices[iMsg].wzInfoText ) );
@@ -503,10 +358,6 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 				Q_strncpy( m_DeathNotices[iMsg].szIcon, "d_vehicle", ARRAYSIZE( m_DeathNotices[iMsg].szIcon ) );
 			}			
 		}
-
-		m_DeathNotices[iMsg].iWeaponID = event->GetInt( "weaponid" );
-		m_DeathNotices[iMsg].iKillerID = event->GetInt( "attacker" );
-		m_DeathNotices[iMsg].iVictimID = event->GetInt( "userid" );
 
 		char sDeathMsg[512];
 
@@ -536,18 +387,12 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 			}
 		}
 
-		if ( FStrEq( pszEventName, "player_death" ) )
-		{
-			if ( m_DeathNotices[iMsg].bCrit )
-			{
-				Msg( "%s (crit)\n", sDeathMsg );
-			}
-			else
-			{
-				Msg( "%s\n", sDeathMsg );
-			}
-		}
+		Msg( "%s\n", sDeathMsg );
+
 	} 
+//DaFox; SDK Fix
+//Tony; this is tf2 specific, it should be moved to hud_tfdeathnotice!!
+#if defined ( TF_DLL )
 	else if ( FStrEq( "teamplay_point_captured", pszEventName ) )
 	{
 		GetLocalizedControlPointName( event, m_DeathNotices[iMsg].Victim.szName, ARRAYSIZE( m_DeathNotices[iMsg].Victim.szName ) );
@@ -584,7 +429,7 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 		}		
 
 		Q_strncpy( m_DeathNotices[iMsg].Killer.szName, szCappers, sizeof(m_DeathNotices[iMsg].Killer.szName) );
-		V_wcsncpy( m_DeathNotices[iMsg].wzInfoText, g_pVGuiLocalize->Find( len > 1 ? "#Msg_Captured_Multiple" : "#Msg_Captured" ), sizeof( m_DeathNotices[iMsg].wzInfoText ) );
+		V_wcsncpy( m_DeathNotices[iMsg].wzInfoText, g_pVGuiLocalize->Find( "#Msg_Captured" ), sizeof( m_DeathNotices[iMsg].wzInfoText ) );
 
 		// print a log message
 		Msg( "%s captured %s for team #%d\n", m_DeathNotices[iMsg].Killer.szName, m_DeathNotices[iMsg].Victim.szName, m_DeathNotices[iMsg].Killer.iTeam );
@@ -608,40 +453,16 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 	{
 		const char *pszMsgKey = NULL;
 		int iEventType = event->GetInt( "eventtype" );
-
-		bool bIsMvM = TFGameRules() && TFGameRules()->IsMannVsMachineMode();
-		if ( bIsMvM )
-		{
-			// MvM only cares about Defend notifications
-			if ( iEventType != TF_FLAGEVENT_DEFEND )
-			{
-				// unsupported, don't put anything up			
-				m_DeathNotices.Remove( iMsg );
-				return;
-			}
-		}
-
-		bool bIsHalloween2014 = TFGameRules() && TFGameRules()->IsHalloweenScenario( CTFGameRules::HALLOWEEN_SCENARIO_DOOMSDAY );
-
 		switch ( iEventType )
 		{
 		case TF_FLAGEVENT_PICKUP: 
-			pszMsgKey = bIsHalloween2014 ? "#Msg_PickedUpFlagHalloween2014" : "#Msg_PickedUpFlag"; 
+			pszMsgKey = "#Msg_PickedUpFlag"; 
 			break;
 		case TF_FLAGEVENT_CAPTURE: 
-			pszMsgKey = bIsHalloween2014 ? "#Msg_CapturedFlagHalloween2014" : "#Msg_CapturedFlag"; 
+			pszMsgKey = "#Msg_CapturedFlag"; 
 			break;
 		case TF_FLAGEVENT_DEFEND: 
-			if ( bIsMvM )
-			{
-				pszMsgKey = "#Msg_DefendedBomb";
-			}
-			else
-			{
-				pszMsgKey = bIsHalloween2014 ? "#Msg_DefendedFlagHalloween2014" : "#Msg_DefendedFlag";
-			}
-
-
+			pszMsgKey = "#Msg_DefendedFlag"; 
 			break;
 
 		// Add this when we can get localization for it
@@ -673,8 +494,9 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 		if ( iLocalPlayerIndex == iPlayerIndex )
 			m_DeathNotices[iMsg].bLocalPlayerInvolved = true;
 	}
+#endif
 
-	OnGameEvent( event, iMsg );
+	OnGameEvent( event, m_DeathNotices[iMsg] );
 
 	if ( !m_DeathNotices[iMsg].iconDeath && m_DeathNotices[iMsg].szIcon )
 	{
@@ -685,11 +507,16 @@ void CHudBaseDeathNotice::FireGameEvent( IGameEvent *event )
 		{
 			bInverted = !bInverted;
 		}
-		m_DeathNotices[iMsg].iconDeath = GetIcon( m_DeathNotices[iMsg].szIcon, bInverted ? kDeathNoticeIcon_Inverted : kDeathNoticeIcon_Standard );
+		m_DeathNotices[iMsg].iconDeath = GetIcon( m_DeathNotices[iMsg].szIcon, bInverted );
 		if ( !m_DeathNotices[iMsg].iconDeath )
 		{
 			// Can't find it, so use the default skull & crossbones icon
-			m_DeathNotices[iMsg].iconDeath = GetIcon( "d_skull_tf", m_DeathNotices[iMsg].bLocalPlayerInvolved ? kDeathNoticeIcon_Inverted : kDeathNoticeIcon_Standard );
+			//DaFox; SDK Fix
+#if defined ( TF_DLL )
+			m_DeathNotices[iMsg].iconDeath = GetIcon( "d_skull_tf", m_DeathNotices[iMsg].bLocalPlayerInvolved );
+#else
+			m_DeathNotices[iMsg].iconDeath = GetIcon( "d_skull", m_DeathNotices[iMsg].bLocalPlayerInvolved );
+#endif
 		}
 	}
 }
@@ -732,7 +559,7 @@ void CHudBaseDeathNotice::DrawText( int x, int y, HFont hFont, Color clr, const 
 	surface()->DrawSetTextPos( x, y );
 	surface()->DrawSetTextColor( clr );
 	surface()->DrawSetTextFont( hFont );	//reset the font, draw icon can change it
-	surface()->DrawUnicodeString( szText, vgui::FONT_DRAW_NONADDITIVE );
+	surface()->DrawUnicodeString( szText, FONT_DRAW_NONADDITIVE );
 }
 
 //-----------------------------------------------------------------------------
@@ -773,33 +600,21 @@ void CHudBaseDeathNotice::CalcRoundedCorners()
 //-----------------------------------------------------------------------------
 // Purpose: Gets specified icon
 //-----------------------------------------------------------------------------
-CHudTexture *CHudBaseDeathNotice::GetIcon( const char *szIcon, EDeathNoticeIconFormat eIconFormat )
+CHudTexture *CHudBaseDeathNotice::GetIcon( const char *szIcon, bool bInvert )
 {
-	// adjust the style (prefix) of the icon if requested
-	if ( eIconFormat != kDeathNoticeIcon_Standard && V_strncmp( "d_", szIcon, 2 ) == 0 )
+	// get the inverted version if specified
+	if ( bInvert && 0 == V_strncmp( "d_", szIcon, 2 ) )
 	{
-		Assert( eIconFormat == kDeathNoticeIcon_Inverted );
-
-		const char *cszNewPrefix = "dneg_";
-		unsigned int iNewPrefixLen = V_strlen( cszNewPrefix );
-
-		// generate new string with correct prefix
-		enum { kIconTempStringLen = 256 };
-
-		char szIconTmp[kIconTempStringLen];
-		V_strncpy( szIconTmp, cszNewPrefix, kIconTempStringLen );
-		V_strncat( szIconTmp, szIcon + 2, kIconTempStringLen - iNewPrefixLen );
-		
-		CHudTexture *pIcon = gHUD.GetIcon( szIconTmp );
-
+		// change prefix from d_ to dneg_
+		char szIconTmp[255] = "dneg_";
+		V_strcat( szIconTmp, szIcon+2, ARRAYSIZE( szIconTmp ) );
+		CHudTexture *pIcon = HudIcons().GetIcon( szIconTmp );
 		// return inverted version if found
 		if ( pIcon )
 			return pIcon;
+		// if we didn't find the inverted version, keep going and try the normal version
 	}
-
-	// we either requested the default style or we requested an alternate style but
-	// didn't have the art for it; either way, we can't, so fall back to our default
-	return gHUD.GetIcon( szIcon );
+	return HudIcons().GetIcon( szIcon );
 }
 
 //-----------------------------------------------------------------------------

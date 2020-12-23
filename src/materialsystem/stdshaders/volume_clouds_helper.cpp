@@ -1,7 +1,7 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2006, Valve Corporation, All rights reserved. ============//
 
 #include "BaseVSShader.h"
-#include "mathlib/vmatrix.h"
+#include "mathlib/VMatrix.h"
 #include "volume_clouds_helper.h"
 #include "convar.h"
 
@@ -9,6 +9,9 @@
 #include "volume_clouds_vs20.inc"
 #include "volume_clouds_ps20.inc"
 #include "volume_clouds_ps20b.inc"
+
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
 
 
 void InitParamsVolumeClouds( CBaseVSShader *pShader, IMaterialVar** params, const char *pMaterialName, VolumeCloudsVars_t &info )
@@ -28,17 +31,17 @@ void InitVolumeClouds( CBaseVSShader *pShader, IMaterialVar** params, VolumeClou
 	// Load textures
 	if ( (info.m_nTexture1 != -1) && params[info.m_nTexture1]->IsDefined() )
 	{
-		pShader->LoadTexture( info.m_nTexture1, TEXTUREFLAGS_SRGB );
+		pShader->LoadTexture( info.m_nTexture1 );
 	}
 
 	if ( (info.m_nTexture2 != -1) && params[info.m_nTexture2]->IsDefined() )
 	{
-		pShader->LoadTexture( info.m_nTexture2, TEXTUREFLAGS_SRGB );
+		pShader->LoadTexture( info.m_nTexture2 );
 	}
 
 	if ( (info.m_nTexture3 != -1) && params[info.m_nTexture3]->IsDefined() )
 	{
-		pShader->LoadTexture( info.m_nTexture3, TEXTUREFLAGS_SRGB );
+		pShader->LoadTexture( info.m_nTexture3 );
 	}
 }
 
@@ -58,7 +61,7 @@ void DrawVolumeClouds( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyn
 		SET_STATIC_VERTEX_SHADER( volume_clouds_vs20 );
 	
 		// Pixel Shader
-		if( g_pHardwareConfig->SupportsPixelShaders_2_b() && !IsOpenGL() ) // Always send POSIX down the 20 path (rg - why?)
+		if( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 		{
 			DECLARE_STATIC_PIXEL_SHADER( volume_clouds_ps20b );
 			SET_STATIC_PIXEL_SHADER( volume_clouds_ps20b );
@@ -108,7 +111,7 @@ void DrawVolumeClouds( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyn
 		pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, vPackedVsConst1, 1 );
 
 		// Set Pixel Shader Combos
-		if ( g_pHardwareConfig->SupportsPixelShaders_2_b() && !IsOpenGL() ) // Always send POSIX down the 20 path (rg - why?)
+		if ( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 		{
 			DECLARE_DYNAMIC_PIXEL_SHADER( volume_clouds_ps20b );
 			SET_DYNAMIC_PIXEL_SHADER( volume_clouds_ps20b );

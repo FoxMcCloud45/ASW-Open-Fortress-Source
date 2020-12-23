@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Implements the big scary boom-boom machine Antlions fear.
 //
@@ -9,6 +9,9 @@
 #include "fmtstr.h"
 #include "vguiscreen.h"
 #include "filesystem.h"
+
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
 
 
 #define SLIDESHOW_LIST_BUFFER_MAX 8192
@@ -404,7 +407,7 @@ void CSlideshowDisplay::SpawnControlPanels()
 		float flWidth = m_iScreenWidth;
 		float flHeight = m_iScreenHeight;
 
-		CVGuiScreen *pScreen = CreateVGuiScreen( pScreenClassname, pScreenName, this, this, -1 );
+		CVGuiScreen *pScreen = CreateVGuiScreen( pScreenClassname, pScreenName, this, this, 0 );
 		pScreen->ChangeTeam( GetTeamNumber() );
 		pScreen->SetActualSize( flWidth, flHeight );
 		pScreen->SetActive( true );
@@ -528,8 +531,8 @@ void CSlideshowDisplay::BuildSlideShowImagesList( void )
 
 		if ( bLoaded )
 		{
-			char szKeywords[ 256 ] = {0};
-			V_strcpy_safe( szKeywords, pMaterialKeys->GetString( "%keywords", "" ) );
+			char szKeywords[ 256 ];
+			Q_strcpy( szKeywords, pMaterialKeys->GetString( "%keywords", "" ) );
 
 			char *pchKeyword = szKeywords;
 
@@ -562,7 +565,7 @@ void CSlideshowDisplay::BuildSlideShowImagesList( void )
 				{
 					// Couldn't find the list, so create it
 					iList = m_SlideKeywordList.AddToTail( new SlideKeywordList_t );
-					V_strcpy_safe( m_SlideKeywordList[iList]->szSlideKeyword, pchKeyword );
+					Q_strcpy( m_SlideKeywordList[ iList ]->szSlideKeyword, pchKeyword );
 				}
 
 				pchKeyword = pNextKeyword;
@@ -581,7 +584,7 @@ void CSlideshowDisplay::BuildSlideShowImagesList( void )
 		{
 			// Couldn't find the generic list, so create it
 			iList = m_SlideKeywordList.AddToHead( new SlideKeywordList_t );
-			V_strcpy_safe( m_SlideKeywordList[iList]->szSlideKeyword, "" );
+			Q_strcpy( m_SlideKeywordList[ iList ]->szSlideKeyword, "" );
 		}
 
 		if ( IsX360() )

@@ -14,8 +14,8 @@ void RecvProxyArrayLength_TeamObjectArray( void* pStruct, int objectID, int curr
 {
 	C_OFTeam* pTeam = ( C_OFTeam* )pStruct;
 
-	if ( pTeam->m_aObjects.Size() != currentArrayLength )
-		pTeam->m_aObjects.SetSize( currentArrayLength );
+	if ( pTeam->m_aObjects.Count() != currentArrayLength )
+		pTeam->m_aObjects.SetCount( currentArrayLength );
 }
 
 // OFSTATUS: COMPLETE.

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -8,17 +8,25 @@
 #include "BaseVSShader.h"
 #include "refract_dx9_helper.h"
 #include "convar.h"
-#include "Refract_vs20.inc"
-#include "Refract_ps20.inc"
-#include "Refract_ps20b.inc"
+#include "refract_vs20.inc"
+#include "refract_ps20.inc"
+#include "refract_ps20b.inc"
 #include "cpp_shader_constant_register_map.h"
 
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
+
 #define MAXBLUR 1
+
+// number of pixels to shrink the viewport by when handling mirroring of texcoords about the viewport edges.  This deals with not stepping out of viewport due to blurring, etc.
+#define REFRACT_VIEWPORT_SHRINK_PIXELS ( 2 )
 
 // FIXME: doesn't support fresnel!
 void InitParamsRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, const char *pMaterialName, Refract_DX9_Vars_t &info )
 {
 	SET_FLAGS2( MATERIAL_VAR2_NEEDS_TANGENT_SPACES );
+	SET_FLAGS2( MATERIAL_VAR2_SUPPORTS_HW_SKINNING );
 	SET_FLAGS( MATERIAL_VAR_TRANSLUCENT );
 	if( !params[info.m_nEnvmapTint]->IsDefined() )
 	{
@@ -52,9 +60,25 @@ void InitParamsRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, const
 	{
 		params[info.m_nFadeOutOnSilhouette]->SetIntValue( 0 );
 	}
-	if( !params[info.m_nForceAlphaWrite]->IsDefined() )
+	if( !params[info.m_nNoViewportFixup]->IsDefined() )
 	{
-		params[info.m_nForceAlphaWrite]->SetIntValue( 0 );
+		params[info.m_nNoViewportFixup]->SetIntValue( 0 );
+	}
+	if( !params[info.m_nMirrorAboutViewportEdges]->IsDefined() )
+	{
+		params[info.m_nMirrorAboutViewportEdges]->SetIntValue( 0 );
+	}
+	if ( !params[info.m_nMagnifyEnable]->IsDefined() )
+	{
+		params[info.m_nMagnifyEnable]->SetIntValue( 0 );
+	}
+	if ( !params[info.m_nMagnifyCenter]->IsDefined() )
+	{
+		params[info.m_nMagnifyCenter]->SetVecValue( 0, 0, 0, 0 );
+	}
+	if ( !params[info.m_nMagnifyScale]->IsDefined() )
+	{
+		params[info.m_nMagnifyScale]->SetIntValue( 0 );
 	}
 	SET_FLAGS2( MATERIAL_VAR2_NEEDS_POWER_OF_TWO_FRAME_BUFFER_TEXTURE );
 }
@@ -63,7 +87,7 @@ void InitRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, Refract_DX9
 {
 	if (params[info.m_nBaseTexture]->IsDefined() )
 	{
-		pShader->LoadTexture( info.m_nBaseTexture, TEXTUREFLAGS_SRGB );
+		pShader->LoadTexture( info.m_nBaseTexture );
 	}
 	if (params[info.m_nNormalMap]->IsDefined() )
 	{
@@ -75,11 +99,11 @@ void InitRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, Refract_DX9
 	}
 	if( params[info.m_nEnvmap]->IsDefined() )
 	{
-		pShader->LoadCubeMap( info.m_nEnvmap, TEXTUREFLAGS_SRGB  );
+		pShader->LoadCubeMap( info.m_nEnvmap );
 	}
 	if( params[info.m_nRefractTintTexture]->IsDefined() )
 	{
-		pShader->LoadTexture( info.m_nRefractTintTexture, TEXTUREFLAGS_SRGB  );
+		pShader->LoadTexture( info.m_nRefractTintTexture );
 	}
 }
 
@@ -95,7 +119,9 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 	bool bSecondaryNormal = ( ( info.m_nNormalMap2 != -1 ) && ( params[info.m_nNormalMap2]->IsTexture() ) );
 	bool bColorModulate = ( ( info.m_nVertexColorModulate != -1 ) && ( params[info.m_nVertexColorModulate]->GetIntValue() ) );
 	bool bWriteZ = params[info.m_nNoWriteZ]->GetIntValue() == 0;
-
+	bool bMirrorAboutViewportEdges = IsX360() && ( info.m_nMirrorAboutViewportEdges != -1 ) && ( params[info.m_nMirrorAboutViewportEdges]->GetIntValue() != 0 );
+	bool bUseMagnification = params[info.m_nMagnifyEnable]->GetIntValue() != 0;
+	
 	if( blurAmount < 0 )
 	{
 		blurAmount = 0;
@@ -111,26 +137,6 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 
 	bool bTranslucentNormal = pShader->TextureIsTranslucent( info.m_nNormalMap, false );
 	bFullyOpaque &= (! bTranslucentNormal );
-
-	NormalDecodeMode_t nNormalDecodeMode = NORMAL_DECODE_NONE;
-	if ( g_pHardwareConfig->SupportsNormalMapCompression() )
-	{
-		ITexture *pBumpTex = params[info.m_nNormalMap]->GetTextureValue();
-		if ( pBumpTex )
-		{
-			nNormalDecodeMode = pBumpTex->GetNormalDecodeMode();
-
-			if ( bSecondaryNormal )			// Check encoding of secondary normal if there is one
-			{
-				ITexture *pBumpTex2 = params[info.m_nNormalMap2]->GetTextureValue();
-				if ( pBumpTex2 && ( pBumpTex2->GetNormalDecodeMode() != nNormalDecodeMode ) )
-				{
-					DevMsg("Refract: Primary and Secondary normal map compression formats don't match.  This is unsupported!\n");
-					Assert(0);
-				}
-			}
-		}
-	}
 
 	SHADOW_STATE
 	{
@@ -150,23 +156,14 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 
 		// source render target that contains the image that we are warping.
 		pShaderShadow->EnableTexture( SHADER_SAMPLER2, true );
-		pShaderShadow->EnableSRGBRead( SHADER_SAMPLER2, true );
+		pShaderShadow->EnableSRGBRead( SHADER_SAMPLER2, !IsX360() );
 
 		// normal map
 		pShaderShadow->EnableTexture( SHADER_SAMPLER3, true );
-		if ( nNormalDecodeMode == NORMAL_DECODE_ATI2N_ALPHA )
-		{
-			pShaderShadow->EnableTexture( SHADER_SAMPLER6, true );	// Normal map alpha, in the compressed normal case
-		}
 
 		if ( bSecondaryNormal )
 		{
 			pShaderShadow->EnableTexture( SHADER_SAMPLER1, true );
-
-			if ( nNormalDecodeMode == NORMAL_DECODE_ATI2N_ALPHA )
-			{
-				pShaderShadow->EnableTexture( SHADER_SAMPLER7, true );	// Secondary normal map alpha, in the compressed normal case
-			}
 		}
 
 		if( bHasEnvmap )
@@ -211,9 +208,7 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 		SET_STATIC_VERTEX_SHADER_COMBO( COLORMODULATE, bColorModulate );
 		SET_STATIC_VERTEX_SHADER( refract_vs20 );
 
-		// We have to do this in the shader on R500 or Leopard
-		bool bShaderSRGBConvert = IsOSX() && ( g_pHardwareConfig->FakeSRGBWrite() || !g_pHardwareConfig->CanDoSRGBReadFromRTs() );
-		if ( g_pHardwareConfig->SupportsPixelShaders_2_b() || g_pHardwareConfig->ShouldAlwaysUseShaderModel2bShaders() ) // always send OpenGL down the ps2b path
+		if ( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 		{
 			DECLARE_STATIC_PIXEL_SHADER( refract_ps20b );
 			SET_STATIC_PIXEL_SHADER_COMBO( BLUR,  blurAmount );
@@ -223,8 +218,8 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 			SET_STATIC_PIXEL_SHADER_COMBO( MASKED, bMasked );
 			SET_STATIC_PIXEL_SHADER_COMBO( COLORMODULATE, bColorModulate );
 			SET_STATIC_PIXEL_SHADER_COMBO( SECONDARY_NORMAL, bSecondaryNormal );
-			SET_STATIC_PIXEL_SHADER_COMBO( NORMAL_DECODE_MODE, (int) nNormalDecodeMode );
-			SET_STATIC_PIXEL_SHADER_COMBO( SHADER_SRGB_READ, bShaderSRGBConvert );
+			SET_STATIC_PIXEL_SHADER_COMBO( MIRRORABOUTVIEWPORTEDGES, bMirrorAboutViewportEdges );
+			SET_STATIC_PIXEL_SHADER_COMBO( MAGNIFY, bUseMagnification );
 			SET_STATIC_PIXEL_SHADER( refract_ps20b );
 		}
 		else
@@ -237,7 +232,8 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 			SET_STATIC_PIXEL_SHADER_COMBO( MASKED, bMasked );
 			SET_STATIC_PIXEL_SHADER_COMBO( COLORMODULATE, bColorModulate );
 			SET_STATIC_PIXEL_SHADER_COMBO( SECONDARY_NORMAL, bSecondaryNormal );
-			SET_STATIC_PIXEL_SHADER_COMBO( NORMAL_DECODE_MODE, (int) nNormalDecodeMode );
+			SET_STATIC_PIXEL_SHADER_COMBO( MIRRORABOUTVIEWPORTEDGES, bMirrorAboutViewportEdges );
+			SET_STATIC_PIXEL_SHADER_COMBO( MAGNIFY, bUseMagnification );
 			SET_STATIC_PIXEL_SHADER( refract_ps20 );
 		}
 		pShader->DefaultFog();
@@ -246,8 +242,7 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 			pShader->EnableAlphaBlending( SHADER_BLEND_ONE_MINUS_SRC_ALPHA, SHADER_BLEND_SRC_ALPHA );
 		}
 
-		bool bAlphaWrites = bFullyOpaque || ( params[ info.m_nForceAlphaWrite ]->GetIntValue() != 0 );
-		pShaderShadow->EnableAlphaWrites( bAlphaWrites );
+		pShaderShadow->EnableAlphaWrites( bFullyOpaque );
 	}
 	DYNAMIC_STATE
 	{
@@ -262,25 +257,11 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 			pShaderAPI->BindStandardTexture( SHADER_SAMPLER2, TEXTURE_FRAME_BUFFER_FULL_TEXTURE_0 );
 		}
 
-		if ( nNormalDecodeMode == NORMAL_DECODE_ATI2N_ALPHA )
-		{
-			pShader->BindTexture( SHADER_SAMPLER3, SHADER_SAMPLER6, info.m_nNormalMap, info.m_nBumpFrame );
-		}
-		else
-		{
-			pShader->BindTexture( SHADER_SAMPLER3, info.m_nNormalMap, info.m_nBumpFrame );
-		}
+		pShader->BindTexture( SHADER_SAMPLER3, info.m_nNormalMap, info.m_nBumpFrame );
 
 		if ( bSecondaryNormal )
 		{
-			if ( nNormalDecodeMode == NORMAL_DECODE_ATI2N_ALPHA )
-			{
-				pShader->BindTexture( SHADER_SAMPLER1, SHADER_SAMPLER7, info.m_nNormalMap2, info.m_nBumpFrame2 );
-			}
-			else
-			{
-				pShader->BindTexture( SHADER_SAMPLER1, info.m_nNormalMap2, info.m_nBumpFrame2 );
-			}
+			pShader->BindTexture( SHADER_SAMPLER1, info.m_nNormalMap2, info.m_nBumpFrame2 );
 		}
 
 		if( bHasEnvmap )
@@ -298,17 +279,15 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 		SET_DYNAMIC_VERTEX_SHADER_COMBO( COMPRESSED_VERTS, (int)vertexCompression );
 		SET_DYNAMIC_VERTEX_SHADER( refract_vs20 );
 
-		if ( g_pHardwareConfig->SupportsPixelShaders_2_b() || g_pHardwareConfig->ShouldAlwaysUseShaderModel2bShaders() ) // always send Posix down the ps2b path
+		if ( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 		{
 			DECLARE_DYNAMIC_PIXEL_SHADER( refract_ps20b );
-			SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
 			SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITE_DEPTH_TO_DESTALPHA, bWriteZ && bFullyOpaque && pShaderAPI->ShouldWriteDepthToDestAlpha() );
 			SET_DYNAMIC_PIXEL_SHADER( refract_ps20b );
 		}
 		else
 		{
 			DECLARE_DYNAMIC_PIXEL_SHADER( refract_ps20 );
-			SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
 			SET_DYNAMIC_PIXEL_SHADER( refract_ps20 );
 		}
 
@@ -334,8 +313,47 @@ void DrawRefract_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDyna
 		c5[3] -= (float)( (int)( c5[3] / 1000.0f ) ) * 1000.0f;
 		pShaderAPI->SetPixelShaderConstant( 5, c5, 1 );
 
+		float c6[4];
+		params[info.m_nMagnifyCenter]->GetVecValue( c6, 2 );
+		c6[2] = params[info.m_nMagnifyScale]->GetFloatValue();
+		if ( c6[2] != 0 )
+		{
+			c6[2] = 1.0f / c6[2]; // Shader uses the inverse scale value
+		}
+		pShaderAPI->SetPixelShaderConstant( 6, c6, 1 );
+
 		float cVs3[4] = { c5[3], 0.0f, 0.0f, 0.0f };
 		pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_5, cVs3, 1 );
+
+		// Get viewport and render target dimensions and set shader constant to do a 2D mad and also deal with mirror on viewport edges.
+		int nViewportX, nViewportY, nViewportWidth, nViewportHeight;
+		pShaderAPI->GetCurrentViewport( nViewportX, nViewportY, nViewportWidth, nViewportHeight );
+
+		int nRtWidth, nRtHeight;
+		pShaderAPI->GetCurrentRenderTargetDimensions( nRtWidth, nRtHeight );
+
+		float vViewportMad[4] = { 1.0f, 1.0f, 0.0f, 0.0f };
+		if ( params[ info.m_nNoViewportFixup ]->GetIntValue() == 0 )
+		{
+			vViewportMad[0] = ( float )nViewportWidth / ( float )nRtWidth;
+			vViewportMad[1] = ( float )nViewportHeight / ( float )nRtHeight;
+			vViewportMad[2] = ( float )nViewportX / ( float )nRtWidth;
+			vViewportMad[3] = ( float )nViewportY / ( float )nRtHeight;
+		}
+		pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_6, vViewportMad, 1 );
+
+		if ( bMirrorAboutViewportEdges )
+		{
+			// Need the extents that we are allowed to sample from the refract texture to clamp by for splitscreen, etc.
+			float vNormalizedViewportMinXYMaxWZ[4];
+
+			vNormalizedViewportMinXYMaxWZ[0] = ( float )( nViewportX + REFRACT_VIEWPORT_SHRINK_PIXELS ) / ( float )nRtWidth;
+			vNormalizedViewportMinXYMaxWZ[1] = ( float )( nViewportY + REFRACT_VIEWPORT_SHRINK_PIXELS ) / ( float )nRtHeight;
+			vNormalizedViewportMinXYMaxWZ[3] = ( float )( nViewportX + nViewportWidth - REFRACT_VIEWPORT_SHRINK_PIXELS - 1 ) / ( float )nRtWidth;
+			vNormalizedViewportMinXYMaxWZ[2] = ( float )( nViewportY + nViewportHeight - REFRACT_VIEWPORT_SHRINK_PIXELS - 1 ) / ( float )nRtHeight;
+
+			pShaderAPI->SetPixelShaderConstant( 4, vNormalizedViewportMinXYMaxWZ, 1 );
+		}
 	}
 	pShader->Draw();
 }

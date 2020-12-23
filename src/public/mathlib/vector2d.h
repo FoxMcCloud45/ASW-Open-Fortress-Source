@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -129,7 +129,7 @@ public:
 	// Cross product between two vectors.
 	Vector2D	Cross(const Vector2D &vOther) const;		
 
-	// Returns a Vector2D with the min or max in X, Y, and Z.
+	// Returns a Vector2D with the MIN or MAX in X, Y, and Z.
 	Vector2D	Min(const Vector2D &vOther) const;
 	Vector2D	Max(const Vector2D &vOther) const;
 
@@ -165,7 +165,7 @@ void Vector2DDivide( const Vector2D& a, vec_t b, Vector2D& result );
 void Vector2DDivide( const Vector2D& a, const Vector2D& b, Vector2D& result );
 void Vector2DMA( const Vector2D& start, float s, const Vector2D& dir, Vector2D& result );
 
-// Store the min or max of each of x, y, and z into the result.
+// Store the MIN or MAX of each of x, y, and z into the result.
 void Vector2DMin( const Vector2D &a, const Vector2D &b, Vector2D &result );
 void Vector2DMax( const Vector2D &a, const Vector2D &b, Vector2D &result );
 
@@ -239,8 +239,8 @@ inline void Vector2D::Init( vec_t ix, vec_t iy )
 
 inline void Vector2D::Random( float minVal, float maxVal )
 {
-	x = minVal + ((float)rand() / VALVE_RAND_MAX) * (maxVal - minVal);
-	y = minVal + ((float)rand() / VALVE_RAND_MAX) * (maxVal - minVal);
+	x = minVal + ((float)rand() / RAND_MAX) * (maxVal - minVal);
+	y = minVal + ((float)rand() / RAND_MAX) * (maxVal - minVal);
 }
 
 inline void Vector2DClear( Vector2D& a )
@@ -592,7 +592,7 @@ inline void ComputeClosestPoint2D( const Vector2D& vecStart, float flMaxDist, co
 #ifndef VECTOR_NO_SLOW_OPERATIONS
 
 //-----------------------------------------------------------------------------
-// Returns a Vector2D with the min or max in X, Y, and Z.
+// Returns a Vector2D with the MIN or MAX in X, Y, and Z.
 //-----------------------------------------------------------------------------
 
 inline Vector2D Vector2D::Min(const Vector2D &vOther) const

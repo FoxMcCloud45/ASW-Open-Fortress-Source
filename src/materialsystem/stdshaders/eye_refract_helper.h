@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2006, Valve Corporation, All rights reserved. ============//
 
 #ifndef EYE_REFRACT_HELPER_H
 #define EYE_REFRACT_HELPER_H
@@ -44,6 +44,7 @@ struct Eye_Refract_Vars_t
 	int m_nAmbientOcclColor;
 	int m_nEyeballRadius;
 	int m_nDiffuseWarpTexture;
+	int m_nAmbientOcclusion;
 };
 
 // Default values (Arrays should only be vec[4])

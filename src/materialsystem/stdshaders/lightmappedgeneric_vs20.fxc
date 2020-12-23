@@ -1,26 +1,35 @@
+//========== Copyright (c) Valve Corporation, All rights reserved. ==========//
+
 //	STATIC: "ENVMAP_MASK"				"0..1"
 //	STATIC: "TANGENTSPACE"				"0..1"
 //  STATIC: "BUMPMAP"					"0..1"
+//	STATIC: "DETAILTEXTURE"				"0..1"
 //  STATIC: "DIFFUSEBUMPMAP"			"0..1"
 //  STATIC: "VERTEXCOLOR"				"0..1"
 //  STATIC: "VERTEXALPHATEXBLENDFACTOR"	"0..1"
-//  STATIC: "RELIEF_MAPPING"            "0..0"
+//  STATIC: "PARALLAX_MAPPING"			"0..1"
 //  STATIC: "SEAMLESS"                  "0..1"
 //  STATIC: "BUMPMASK"                  "0..1"
 //	STATIC: "FLASHLIGHT"				"0..1"	[XBOX]
+//	STATIC: "FANCY_BLENDING"			"0..1"
+//	STATIC: "SELFILLUM"					"0..1"
+//  STATIC: "LIGHTING_PREVIEW"			"0..3"	[PC]
+//  STATIC: "LIGHTING_PREVIEW"			"0..0"	[XBOX]
 
 //  DYNAMIC: "FASTPATH"					"0..1"
-//	DYNAMIC: "DOWATERFOG"				"0..1"
-//  DYNAMIC: "LIGHTING_PREVIEW"			"0..1"	[PC]
-//  DYNAMIC: "LIGHTING_PREVIEW"			"0..0"	[XBOX]
 
 // This should not be a combo since I'm a moron with the tangent space and the flashlight.
 //  SKIP: !$BUMPMAP && $DIFFUSEBUMPMAP
-//  SKIP: $SEAMLESS && $RELIEF_MAPPING
-//  SKIP: $BUMPMASK && $RELIEF_MAPPING
+//  SKIP: $SEAMLESS && $PARALLAXMAP
+//  SKIP: $BUMPMASK && $PARALLAXMAP
 //  SKIP: $BUMPMASK && $SEAMLESS
 
+//  SKIP: $LIGHTING_PREVIEW && $FLASHLIGHT
+
+#include "common_fog_vs_supportsvertexfog_fxc.h"
 #include "common_vs_fxc.h"
+#include "common_lightmappedgeneric_fxc.h"
+
 
 static const int g_FogType						= DOWATERFOG;
 static const bool g_UseSeparateEnvmapMask		= ENVMAP_MASK;
@@ -40,8 +49,20 @@ const float4 cDetailOrBumpTexCoordTransform[2]	:  register( SHADER_SPECIFIC_CONS
 #endif
 // This should be identity if we are bump mapping, otherwise we'll screw up the lightmapTexCoordOffset.
 const float4 cEnvmapMaskTexCoordTransform[2]	:  register( SHADER_SPECIFIC_CONST_4 );
+
+#if FLASHLIGHT
 const float4x4 g_FlashlightWorldToTexture		:  register( SHADER_SPECIFIC_CONST_6 );
-const float4 cBlendMaskTexCoordTransform[2]     :  register( SHADER_SPECIFIC_CONST_10 );	// not contiguous with the rest!
+#endif
+
+#if DETAILTEXTURE && BUMPMAP && !SELFILLUM && !FANCY_BLENDING
+const float4 cBumpTexCoordTransform[2]			:  register( SHADER_SPECIFIC_CONST_10 );	// not contiguous with the rest!
+#else
+const float4 cFancyBlendMaskTexCoordTransform[2]:  register( SHADER_SPECIFIC_CONST_10 );	// not contiguous with the rest!
+#endif
+
+#if ( LIGHTING_PREVIEW == 3 )
+const float4 g_vEyeVector						:  register( SHADER_SPECIFIC_CONST_12 );
+#endif
 
 struct VS_INPUT
 {
@@ -55,46 +76,6 @@ struct VS_INPUT
 	float4 vColor						: COLOR0;
 };
 
-struct VS_OUTPUT
-{
-    float4 projPos					: POSITION;	
-#if !defined( _X360 )    
-	float  fog						: FOG;
-#endif
-
-#if SEAMLESS
-	float3 SeamlessTexCoord         : TEXCOORD0;            // x y z 
-	float4 detailOrBumpAndEnvmapMaskTexCoord : TEXCOORD1;   // envmap mask
-#else
-	float2 baseTexCoord				: TEXCOORD0;
-	// detail textures and bumpmaps are mutually exclusive so that we have enough texcoords.
-#if RELIEF_MAPPING
-	float3 TangentSpaceViewRay		: TEXCOORD1;
-#else
-	float4 detailOrBumpAndEnvmapMaskTexCoord : TEXCOORD1;
-#endif
-#endif
-	float4 lightmapTexCoord1And2	: TEXCOORD2;
-	float4 lightmapTexCoord3		: TEXCOORD3;			// and basetexcoord*mask_scale
-	float4 worldPos_projPosZ		: TEXCOORD4;
-
-#if TANGENTSPACE || (LIGHTING_PREVIEW) || defined( _X360 )
-	float3x3 tangentSpaceTranspose	: TEXCOORD5;	// and 6 and 7
-#endif
-
-	float4 vertexColor				: COLOR;				// in seamless, r g b = blend weights
-	float4 vertexBlendX_fogFactorW	: COLOR1;
-
-	// Extra iterators on 360, used in flashlight combo
-#if defined( _X360 )
-#if FLASHLIGHT
-	float4 flashlightSpacePos		: TEXCOORD8;
-	float4 vProjPos					: TEXCOORD9;
-#endif
-#endif
-
-};
-
 VS_OUTPUT main( const VS_INPUT v )
 {
 	VS_OUTPUT o = ( VS_OUTPUT )0;
@@ -102,17 +83,24 @@ VS_OUTPUT main( const VS_INPUT v )
 	float3 vObjNormal;
 	DecompressVertex_Normal( v.vNormal, vObjNormal );
 
-	float3 worldPos = mul( float4( v.vPos, 1 ), cModel[0] );
+	float4 projPos;
+	float3 worldPos;
 
-	float4 vProjPos = mul( float4( v.vPos, 1 ), cModelViewProj );
-	o.projPos = vProjPos;
-	vProjPos.z = dot( float4( v.vPos, 1 ), cModelViewProjZ );
+	projPos = mul( float4( v.vPos, 1 ), cModelViewProj );
+	o.projPos = projPos;
+
+	worldPos = mul( float4( v.vPos, 1 ), cModel[0] );
 	
-	o.worldPos_projPosZ = float4( worldPos, vProjPos.z );
+	o.worldPos_projPosZ.w = projPos.z;
+	o.worldPos_projPosZ.xyz = worldPos;
+
+#if ( LIGHTING_PREVIEW == 3 )
+	o.worldPos_projPosZ.w = dot( g_vEyeVector, worldPos.xyz - cEyePos.xyz );	// Linear depth
+#endif
 	
 	float3 worldNormal = mul( vObjNormal, ( float3x3 )cModel[0] );
 	
-#if TANGENTSPACE || (LIGHTING_PREVIEW) || defined( _X360 )
+#if TANGENTSPACE || LIGHTING_PREVIEW || PARALLAX_MAPPING || defined( _X360 )
 	float3 worldTangentS = mul( v.vTangentS, ( const float3x3 )cModel[0] );
 	float3 worldTangentT = mul( v.vTangentT, ( const float3x3 )cModel[0] );
 
@@ -128,49 +116,59 @@ VS_OUTPUT main( const VS_INPUT v )
 		o.tangentSpaceTranspose[1] = worldTangentT;
 		o.tangentSpaceTranspose[2] = worldNormal;
 	#endif
-
 #endif
+
 
 	float3 worldVertToEyeVector = VSHADER_VECT_SCALE * (cEyePos - worldPos);
 
-#if SEAMLESS
+	#if ( SEAMLESS )
 	{
 		// we need to fill in the texture coordinate projections
-		o.SeamlessTexCoord = SEAMLESS_SCALE*worldPos;
+		o.SeamlessTexCoord_fogFactorW.xyz = SEAMLESS_SCALE * worldPos;
 	}
-#else
+	#else
 	{
-		if (FASTPATH)
+		if ( FASTPATH )
 		{
-			o.baseTexCoord.xy = v.vBaseTexCoord;
+			o.baseTexCoord_fogFactorZ.xy = v.vBaseTexCoord;
 		}
 		else
 		{
-			o.baseTexCoord.x = dot( v.vBaseTexCoord, cBaseTexCoordTransform[0] ) + cBaseTexCoordTransform[0].w;
-			o.baseTexCoord.y = dot( v.vBaseTexCoord, cBaseTexCoordTransform[1] ) + cBaseTexCoordTransform[1].w;
+			o.baseTexCoord_fogFactorZ.x = dot( v.vBaseTexCoord, cBaseTexCoordTransform[0] ) + cBaseTexCoordTransform[0].w;
+			o.baseTexCoord_fogFactorZ.y = dot( v.vBaseTexCoord, cBaseTexCoordTransform[1] ) + cBaseTexCoordTransform[1].w;
 		}
-#if ( RELIEF_MAPPING == 0 )
+		// calculate detailorbumptexcoord
+		if ( FASTPATH )
 		{
-            // calculate detailorbumptexcoord
-			if ( FASTPATH )
-				o.detailOrBumpAndEnvmapMaskTexCoord.xy = v.vBaseTexCoord.xy;
-			else
-			{
-				o.detailOrBumpAndEnvmapMaskTexCoord.x = dot( v.vBaseTexCoord, cDetailOrBumpTexCoordTransform[0] ) + cDetailOrBumpTexCoordTransform[0].w;
-				o.detailOrBumpAndEnvmapMaskTexCoord.y = dot( v.vBaseTexCoord, cDetailOrBumpTexCoordTransform[1] ) + cDetailOrBumpTexCoordTransform[1].w;
-			}
+			o.DETAILORBUMPCOORDS = v.vBaseTexCoord.xy;
 		}
-#endif
+		else
+		{
+			o.DETAILORBUMPCOORDS = float2( dot( v.vBaseTexCoord, cDetailOrBumpTexCoordTransform[0] ) + cDetailOrBumpTexCoordTransform[0].w, 
+				                           dot( v.vBaseTexCoord, cDetailOrBumpTexCoordTransform[1] ) + cDetailOrBumpTexCoordTransform[1].w );
+		}
 	}
-#endif
+	#endif
 	if ( FASTPATH )
 	{
 		o.lightmapTexCoord3.zw = v.vBaseTexCoord;
+#if DETAILTEXTURE && BUMPMAP && !SELFILLUM && !FANCY_BLENDING
+		o.BUMPCOORDS = v.vBaseTexCoord;
+#endif
+#if FANCY_BLENDING
+		o.FANCYBLENDMASKCOORDS = v.vBaseTexCoord;
+#endif
 	}
 	else
 	{
-		o.lightmapTexCoord3.z = dot( v.vBaseTexCoord, cBlendMaskTexCoordTransform[0] ) + cBlendMaskTexCoordTransform[0].w;
-		o.lightmapTexCoord3.w = dot( v.vBaseTexCoord, cBlendMaskTexCoordTransform[1] ) + cBlendMaskTexCoordTransform[1].w;
+#if DETAILTEXTURE && BUMPMAP && !SELFILLUM && !FANCY_BLENDING
+		o.BUMPCOORDS = float2( dot( v.vBaseTexCoord, cBumpTexCoordTransform[0] ) + cBumpTexCoordTransform[0].w,
+							   dot( v.vBaseTexCoord, cBumpTexCoordTransform[1] ) + cBumpTexCoordTransform[1].w );
+#endif
+#if FANCY_BLENDING
+		o.FANCYBLENDMASKCOORDS = float2( dot( v.vBaseTexCoord, cFancyBlendMaskTexCoordTransform[0] ) + cFancyBlendMaskTexCoordTransform[0].w,
+										 dot( v.vBaseTexCoord, cFancyBlendMaskTexCoordTransform[1] ) + cFancyBlendMaskTexCoordTransform[1].w );
+#endif
 	}
 	
 	//  compute lightmap coordinates
@@ -192,33 +190,43 @@ VS_OUTPUT main( const VS_INPUT v )
 		o.lightmapTexCoord1And2.xy = v.vLightmapTexCoord;
 	}
 
-#if ( RELIEF_MAPPING == 0)
 	if( g_UseSeparateEnvmapMask || g_BumpMask )
 	{
 		// reversed component order
-#	if FASTPATH
-		o.detailOrBumpAndEnvmapMaskTexCoord.wz = v.vBaseTexCoord.xy;
-#	else
-		o.detailOrBumpAndEnvmapMaskTexCoord.w = dot( v.vBaseTexCoord, cEnvmapMaskTexCoordTransform[0] ) + cEnvmapMaskTexCoordTransform[0].w;
-		o.detailOrBumpAndEnvmapMaskTexCoord.z = dot( v.vBaseTexCoord, cEnvmapMaskTexCoordTransform[1] ) + cEnvmapMaskTexCoordTransform[1].w;
-#	endif
+#if FASTPATH
+		o.ENVMAPMASKCOORDS = v.vBaseTexCoord.xy;
+#else
+		o.ENVMAPMASKCOORDS = float2( dot( v.vBaseTexCoord, cEnvmapMaskTexCoordTransform[0] ) + cEnvmapMaskTexCoordTransform[0].w,
+									 dot( v.vBaseTexCoord, cEnvmapMaskTexCoordTransform[1] ) + cEnvmapMaskTexCoordTransform[1].w );
+#endif
 	}
-#endif
+	
+	#if ( HARDWAREFOGBLEND )
+	{
+		o.fog = CalcFixedFunctionFog( worldPos, g_FogType );
+	}
+	#endif
 
-	o.vertexBlendX_fogFactorW = CalcFog( worldPos, vProjPos, g_FogType );
-#if !defined( _X360 )
-	o.fog = o.vertexBlendX_fogFactorW;
-#endif
+	#if ( !DOPIXELFOG && !HARDWAREFOGBLEND )
+	{
+		#if ( SEAMLESS )
+		{
+			o.SeamlessTexCoord_fogFactorW.w = CalcNonFixedFunctionFog( worldPos, g_FogType );
+		}
+		#else
+		{
+			o.baseTexCoord_fogFactorZ.z = CalcNonFixedFunctionFog( worldPos, g_FogType );
+		}
+		#endif
+	}
+	#endif
 
-	if (!g_bVertexColor)
+	if ( !g_bVertexColor )
 	{
 		o.vertexColor = float4( 1.0f, 1.0f, 1.0f, cModulationColor.a );
 	}
 	else
 	{
-#if FASTPATH
-		o.vertexColor = v.vColor;
-#else
 		if ( g_bVertexAlphaTexBlendFactor )
 		{
 			o.vertexColor.rgb = v.vColor.rgb;
@@ -229,7 +237,6 @@ VS_OUTPUT main( const VS_INPUT v )
 			o.vertexColor = v.vColor;
 			o.vertexColor.a *= cModulationColor.a;
 		}
-#endif
 	}
 #if SEAMLESS
 	// compute belnd weights in rgb
@@ -241,13 +248,13 @@ VS_OUTPUT main( const VS_INPUT v )
 #if defined( _X360 )
 	#if FLASHLIGHT
 		o.flashlightSpacePos = mul( float4( worldPos, 1.0f ), g_FlashlightWorldToTexture );
-		o.vProjPos = vProjPos;
+		o.vProjPos = projPos;
 	#endif
 #endif
 
 	if ( g_bVertexAlphaTexBlendFactor )
 	{
-		o.vertexBlendX_fogFactorW.r = v.vColor.a;
+		o.vertexBlendX.x = v.vColor.a;
 	}
 	
 	return o;

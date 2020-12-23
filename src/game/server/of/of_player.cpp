@@ -76,7 +76,7 @@ COFPlayer::COFPlayer() : BaseClass() {
 	m_PlayerAnimState = CreatePlayerAnimState(this);
 }
 
-bool COFPlayer::m_bOFPlayerNeedsPrecache { false };
+bool COFPlayer::m_bOFPlayerNeedsPrecache = false;
 
 COFPlayer* COFPlayer::CreatePlayer( const char * name, edict_t* pEdict)
 {
@@ -141,6 +141,9 @@ void COFPlayer::StateEnterWELCOME()
 
 	char title[128];
 
+	// Does not exist in Alien Swarm engine branch; removed for now.
+	// TODO: Port required functions from Source SDK 2013 util_shared.h and util_shared.cpp
+	/*
 	if ( UTIL_GetActiveHolidayString() )
 	{
 		V_snprintf( title, sizeof( title ), "#TF_Welcome_%s", UTIL_GetActiveHolidayString() );
@@ -149,6 +152,9 @@ void COFPlayer::StateEnterWELCOME()
 	{
 		V_snprintf( title, sizeof( title ), "#TF_Welcome" );
 	}
+	*/
+
+	V_snprintf( title, sizeof( title ), "#TF_Welcome" );
 
 	// open info panel on client showing MOTD:
 	KeyValues* data = new KeyValues( "data" );
@@ -410,10 +416,10 @@ void COFPlayer::PrecacheOFPlayer()
         PrecacheParticleSystem("drg_pomson_impact_drain");
         PrecacheParticleSystem("dragons_fury_effect");
         PrecacheParticleSystem("dxhr_arm_muzzleflash");
-        PrecacheModel("effects/beam001_red.vmt", true);
-        PrecacheModel("effects/beam001_blu.vmt", true);
-        PrecacheModel("effects/beam001_white.vmt", true);
-        PrecacheModel("models/player/gibs/random_organ.mdl", true);
+        PrecacheModel("effects/beam001_red.vmt");
+        PrecacheModel("effects/beam001_blu.vmt");
+        PrecacheModel("effects/beam001_white.vmt");
+        PrecacheModel("models/player/gibs/random_organ.mdl");
         PrecacheScriptSound("Weapon_Mantreads.Impact");
         PrecacheScriptSound("cleats_conc.StepLeft");
         PrecacheScriptSound("cleats_conc.StepRight");
@@ -436,13 +442,13 @@ void COFPlayer::PrecacheOFPlayer()
         PrecacheScriptSound("Spy.TeaseVictim");
         PrecacheScriptSound("Demoman.CritDeath");
         PrecacheScriptSound("Heavy.Battlecry03");
-        PrecacheModel("models/effects/resist_shield/resist_shield.mdl", true);
-        PrecacheModel("models/props_mvm/mvm_revive_tombstone.mdl", true);
+        PrecacheModel("models/effects/resist_shield/resist_shield.mdl");
+        PrecacheModel("models/props_mvm/mvm_revive_tombstone.mdl");
         PrecacheScriptSound("General.banana_slip");
         PrecacheScriptSound("Parachute_open");
         PrecacheScriptSound("Parachute_close");
-        PrecacheModel("models/props_trainyard/bomb_eotl_blue.mdl", true);
-        PrecacheModel("models/props_trainyard/bomb_eotl_red.mdl", true);
+        PrecacheModel("models/props_trainyard/bomb_eotl_blue.mdl");
+        PrecacheModel("models/props_trainyard/bomb_eotl_red.mdl");
     }
     /*if ((iVar2 != 0) && ((puVar3[0x1010] == '\0' || (*(int*)(puVar3 + 0x100c) != 0)))) {
         iVar2 = *(int*)(puVar3 + 0x19b8);

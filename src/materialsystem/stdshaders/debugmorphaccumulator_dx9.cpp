@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2007, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -10,6 +10,10 @@
 
 #include "debugmorphaccumulator_ps30.inc"
 #include "debugmorphaccumulator_vs30.inc"
+
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
 
 BEGIN_VS_SHADER_FLAGS( DebugMorphAccumulator, "Help for Debug Morph Accumulator", SHADER_NOT_EDITABLE )
 
@@ -37,7 +41,7 @@ BEGIN_VS_SHADER_FLAGS( DebugMorphAccumulator, "Help for Debug Morph Accumulator"
 			pShaderShadow->EnableDepthTest( false );
 			pShaderShadow->EnableDepthWrites( false );
 			pShaderShadow->EnableCulling( false );
-			pShaderShadow->FogMode( SHADER_FOGMODE_DISABLED );
+			pShaderShadow->FogMode( SHADER_FOGMODE_DISABLED, false );
 			pShaderShadow->EnableTexture( SHADER_SAMPLER0, true );
 			pShaderShadow->EnableSRGBWrite( false );
 

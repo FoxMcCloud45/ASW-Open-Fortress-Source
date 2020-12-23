@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2007, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
 //
@@ -54,11 +54,11 @@ struct VertexLitGeneric_DX9_Vars_t
 	int m_nFlashlightNoLambert;
 	int m_nFlashlightTexture;
 	int m_nFlashlightTextureFrame;
-	int m_nLightmap;
 
 	int m_nSelfIllumTint;
 	int m_nSelfIllumFresnel;
 	int m_nSelfIllumFresnelMinMaxExp;
+	int m_nSelfIllumMaskScale;
 
 	int m_nPhongExponent;
 	int m_nPhongTint;
@@ -68,12 +68,12 @@ struct VertexLitGeneric_DX9_Vars_t
 	int m_nPhongWarpTexture;	
 	int m_nPhongBoost;
 	int m_nPhongFresnelRanges;
-	int m_nPhongExponentFactor;
 	int m_nSelfIllumEnvMapMask_Alpha;
 	int m_nAmbientOnly;
 	int m_nHDRColorScale;
 	int m_nPhong;
 	int m_nBaseMapAlphaPhongMask;
+	int m_nBaseMapLuminancePhongMask;
 	int m_nEnvmapFresnel;
 
 	int m_nDetailTextureCombineMode;
@@ -123,23 +123,54 @@ struct VertexLitGeneric_DX9_Vars_t
 	int m_nDetailTint;
 	int m_nInvertPhongMask;
 
-	int m_nDepthBlend;
-	int m_nDepthBlendScale;
-
 	int m_nSelfIllumMask;
 	int m_nReceiveFlashlight;
+	int m_nSinglePassFlashlight;
+
+	int m_nShaderSrgbRead360;
+
+	int m_nAmbientOcclusion;
 
 	int m_nBlendTintByBaseAlpha;
 
-	int m_nTintReplacesBaseColor;
+	int m_nDesaturateWithBaseAlpha;
+
+	int m_nAllowDiffuseModulation;
+
+	int m_nEnvMapFresnelMinMaxExp;
+
+	int m_nBaseAlphaEnvMapMaskMinMaxExp;
+	
+	int m_nDisplacementMap;
+
+	int m_nDisplacementWrinkleMap;
+
+	int m_nPhongDisableHalfLambert;
+
+	int m_nFoW;
+
+	int m_nTreeSway;
+	int m_nTreeSwayHeight;
+	int m_nTreeSwayStartHeight;
+	int m_nTreeSwayRadius;
+	int m_nTreeSwayStartRadius;
+	int m_nTreeSwaySpeed;
+	int m_nTreeSwaySpeedHighWindMultiplier;
+	int m_nTreeSwayStrength;
+	int m_nTreeSwayScrumbleSpeed;
+	int m_nTreeSwayScrumbleStrength;
+	int m_nTreeSwayScrumbleFrequency;
+	int m_nTreeSwayFalloffExp;
+	int m_nTreeSwayScrumbleFalloffExp;
+	int m_nTreeSwaySpeedLerpStart;
+	int m_nTreeSwaySpeedLerpEnd;
 };
 
 void InitParamsVertexLitGeneric_DX9( CBaseVSShader *pShader, IMaterialVar** params, const char *pMaterialName, bool bVertexLitGeneric, VertexLitGeneric_DX9_Vars_t &info );
 void InitVertexLitGeneric_DX9( CBaseVSShader *pShader, IMaterialVar** params, bool bVertexLitGeneric, VertexLitGeneric_DX9_Vars_t &info );
 void DrawVertexLitGeneric_DX9( CBaseVSShader *pShader, IMaterialVar** params, IShaderDynamicAPI *pShaderAPI, IShaderShadow* pShaderShadow,
 							   bool bVertexLitGeneric, VertexLitGeneric_DX9_Vars_t &info, VertexCompressionType_t vertexCompression,
-							   CBasePerMaterialContextData **pContextDataPtr
-	);
+							   CBasePerMaterialContextData **pContextDataPtr );
 
 
 #endif // VERTEXLITGENERIC_DX9_HELPER_H

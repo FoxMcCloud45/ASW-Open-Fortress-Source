@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 // Implements local hooks into named renderable textures.
@@ -7,7 +7,7 @@
 //=============================================================================//
 
 #include "materialsystem/imesh.h"
-#include "materialsystem/itexture.h"
+#include "materialsystem/ITexture.h"
 #include "materialsystem/MaterialSystemUtil.h"
 #include "tier1/strtools.h"
 #include "rendertexture.h"
@@ -15,7 +15,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-void ReleaseRenderTargets( void );
+void ReleaseRenderTargets( int nChangeFlags );
 
 void AddReleaseFunc( void )
 {
@@ -107,11 +107,11 @@ ITexture *GetFullFrameFrameBufferTexture( int textureIndex )
 		char name[256];
 		if( textureIndex != 0 )
 		{
-			V_sprintf_safe( name, "_rt_FullFrameFB%d", textureIndex );
+			sprintf( name, "_rt_FullFrameFB%d", textureIndex );
 		}
 		else
 		{
-			V_strcpy_safe( name, "_rt_FullFrameFB" );
+			Q_strcpy( name, "_rt_FullFrameFB" );
 		}
 		s_pFullFrameFrameBufferTexture[textureIndex].Init( materials->FindTexture( name, TEXTURE_GROUP_RENDER_TARGET ) );
 		Assert( !IsErrorTexture( s_pFullFrameFrameBufferTexture[textureIndex] ) );
@@ -243,8 +243,11 @@ ITexture *GetTeenyTexture( int which )
 	return s_TeenyTextures[which];
 }
 
-void ReleaseRenderTargets( void )
+void ReleaseRenderTargets( int nChangeFlags )
 {
+	if ( nChangeFlags & MATERIAL_RESTORE_VERTEX_FORMAT_CHANGED )
+		return;
+
 	s_pPowerOfTwoFrameBufferTexture.Shutdown();
 	s_pCameraTexture.Shutdown();
 	s_pWaterReflectionTexture.Shutdown();
@@ -254,5 +257,7 @@ void ReleaseRenderTargets( void )
 	s_pFullFrameDepthTexture.Shutdown();
 
 	for (int i=0; i<MAX_FB_TEXTURES; ++i)
+	{
 		s_pFullFrameFrameBufferTexture[i].Shutdown();
+	}
 }

@@ -1,12 +1,9 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //=============================================================================//
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * Mark BuildGroup as final to fix nonvirtual destructor warning
-//     (Don't know why this class has any virtual members at all, there're no subclasses.)
 
 #ifndef VGUI_BUILDGROUP_H
 #define VGUI_BUILDGROUP_H
@@ -34,7 +31,7 @@ namespace vgui
 // Purpose: a BuildGroup is a list of panels contained in a window (the contextPanel)
 //			Members of this group are viewable and editable in Build Mode, via the BuildModeDialog wizard
 //-----------------------------------------------------------------------------
-class BuildGroup final
+class BuildGroup
 {
 	DECLARE_HANDLES( BuildGroup, 20 );
 
@@ -95,7 +92,8 @@ public:
 	// Get the resource file name used
 	virtual const char *GetResourceName(void) { return m_pResourceName; }
 
-	virtual void PanelAdded(Panel* panel);
+	void PanelAdded(Panel* panel);
+	void PanelRemoved(Panel *panel);
 
 	virtual bool MousePressed(MouseCode code,Panel* panel);
 	virtual bool MouseReleased(MouseCode code,Panel* panel);

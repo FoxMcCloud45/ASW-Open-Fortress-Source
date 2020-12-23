@@ -1,11 +1,8 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 //=============================================================================//
-
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * added check for OF_DLL define
 
 #ifndef TRAINS_H
 #define TRAINS_H
@@ -72,8 +69,6 @@ public:
 	void UpdateOnRemove();
 	void MoveDone();
 
-	virtual int OnTakeDamage( const CTakeDamageInfo &info );
-
 	void Blocked( CBaseEntity *pOther );
 	bool KeyValue( const char *szKeyName, const char *szValue );
 
@@ -99,7 +94,6 @@ public:
 	void SetDirForward( bool bForward );
 	void SetSpeed( float flSpeed, bool bAccel = false );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void SetSpeedDirAccel( float flNewSpeed );
 	
 	// Input handlers
 	void InputSetSpeed( inputdata_t &inputdata );
@@ -112,17 +106,8 @@ public:
 	void InputStartBackward( inputdata_t &inputdata );
 	void InputToggle( inputdata_t &inputdata );
 	void InputSetSpeedDirAccel( inputdata_t &inputdata );
-	void InputTeleportToPathTrack( inputdata_t &inputdata );
-	void InputSetSpeedForwardModifier( inputdata_t &inputdata );
 
 	static CFuncTrackTrain *Instance( edict_t *pent );
-
-#if defined( TF_DLL ) || defined( OF_DLL )
-	int UpdateTransmitState()
-	{
-		return SetTransmitState( FL_EDICT_ALWAYS );
-	}
-#endif
 
 	DECLARE_DATADESC();
 
@@ -136,10 +121,6 @@ public:
 
 	virtual bool IsBaseTrain( void ) const { return true; }
 
-	void SetSpeedForwardModifier( float flModifier );
-	void SetBlockDamage( float flDamage ) { m_flBlockDamage = flDamage; }
-	void SetDamageChild( bool bDamageChild ) { m_bDamageChild = bDamageChild; }
-
 private:
 
 	void ArriveAtNode( CPathTrack *pNode );
@@ -151,11 +132,6 @@ public:
 	CPathTrack	*m_ppath;
 	float		m_length;
 	
-#ifdef HL1_DLL	
-	bool		m_bOnTrackChange;		// we don't want to find a new node if we restore while 
-										// riding on a func_trackchange
-#endif
-
 private:
 
 	TrainVelocityType_t GetTrainVelocityType();
@@ -209,11 +185,6 @@ private:
 	bool		m_bAccelToSpeed;
 
 	float		m_flNextMPSoundTime;
-	
-	float		m_flSpeedForwardModifier;
-	float		m_flUnmodifiedDesiredSpeed;
-
-	bool		m_bDamageChild;
 };
 
 

@@ -1,10 +1,8 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 //=============================================================================//
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * include animationlayer.h (client) or stub it (server) for CAnimationLayer.
 
 #ifndef SEQUENCE_TRANSITIONER_H
 #define SEQUENCE_TRANSITIONER_H
@@ -12,11 +10,7 @@
 #pragma once
 #endif
 
-#ifdef CLIENT_DLL
-#include "animationlayer.h"
-#else
-class CAnimationLayer;
-#endif
+class CStudioHdr;
 
 // ------------------------------------------------------------------------------------------------ //
 // CSequenceTransitioner declaration.

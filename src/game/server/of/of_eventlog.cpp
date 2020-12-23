@@ -11,7 +11,7 @@
 
 CEventLog g_OFEventLog;
 
-IGameSystem* GameLogSystem()
+CEventLog* GameLogSystem()
 {
 	return &g_OFEventLog;
 }

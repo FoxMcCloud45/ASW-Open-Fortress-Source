@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -18,7 +18,7 @@
 //-----------------------------------------------------------------------------
 // Purpose: basic solid geometry
 // enabled state:	brush is visible
-// disabled state:	brush not visible
+// disabled staute:	brush not visible
 //-----------------------------------------------------------------------------
 class CFuncBrush : public CBaseEntity
 {
@@ -32,8 +32,8 @@ public:
 
 	virtual int DrawDebugTextOverlays( void );
 
-	virtual void TurnOff( void );
-	virtual void TurnOn( void );
+	void TurnOff( void );
+	void TurnOn( void );
 
 	// Input handlers
 	void InputTurnOff( inputdata_t &inputdata );
@@ -55,8 +55,9 @@ public:
 	bool m_bInvertExclusion;
 
 	DECLARE_DATADESC();
+	DECLARE_SERVERCLASS();
 
-	virtual bool IsOn( void ) const;
+	virtual bool IsOn( void );
 };
 
 

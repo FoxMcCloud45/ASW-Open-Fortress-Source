@@ -1,11 +1,8 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 //=============================================================================//
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * include tier0/platform.h for abstract_class.
-// * include mathlib/vector.h for QAngle.
 
 #ifndef IPLAYERANIMSTATE_H
 #define IPLAYERANIMSTATE_H
@@ -13,8 +10,7 @@
 #pragma once
 #endif
 
-#include "tier0/platform.h"
-#include "mathlib/vector.h"
+
 
 typedef enum
 {

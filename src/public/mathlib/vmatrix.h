@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -54,7 +54,6 @@ public:
 	// Creates a matrix where the X axis = forward
 	// the Y axis = left, and the Z axis = up
 	VMatrix( const Vector& forward, const Vector& left, const Vector& up );
-	VMatrix( const Vector& forward, const Vector& left, const Vector& up, const Vector& translation );
 	
 	// Construct from a 3x4 matrix
 	VMatrix( const matrix3x4_t& matrix3x4 );
@@ -107,6 +106,7 @@ public:
 	void		PreTranslate(const Vector &vTrans);
 	void		PostTranslate(const Vector &vTrans);
 
+	matrix3x4_t& As3x4();
 	const matrix3x4_t& As3x4() const;
 	void		CopyFrom3x4( const matrix3x4_t &m3x4 );
 	void		Set3x4( matrix3x4_t& matrix3x4 ) const;
@@ -199,9 +199,6 @@ public:
 	// Setup a matrix for origin and angles.
 	void		SetupMatrixOrgAngles( const Vector &origin, const QAngle &vAngles );
 	
-	// Setup a matrix for angles and no translation.
-	void		SetupMatrixAngles( const QAngle &vAngles );
-
 	// General inverse. This may fail so check the return!
 	bool		InverseGeneral(VMatrix &vInverse) const;
 	
@@ -262,6 +259,9 @@ VMatrix		SetupMatrixProjection(const Vector &vOrigin, const VPlane &thePlane);
 
 // Setup a matrix to rotate the specified amount around the specified axis.
 VMatrix		SetupMatrixAxisRot(const Vector &vAxis, vec_t fDegrees);
+
+// Setup a matrix to rotate one axis onto another. Input vectors must be normalized.
+VMatrix		SetupMatrixAxisToAxisRot(const Vector &vFromAxis, const Vector &vToAxis);
 
 // Setup a matrix from euler angles. Just sets identity and calls MatrixAngles.
 VMatrix		SetupMatrixAngles(const QAngle &vAngles);
@@ -460,16 +460,6 @@ inline VMatrix::VMatrix( const Vector& xAxis, const Vector& yAxis, const Vector&
 		);
 }
 
-inline VMatrix::VMatrix( const Vector& xAxis, const Vector& yAxis, const Vector& zAxis, const Vector& translation )
-{
-	Init(
-		xAxis.x, yAxis.x, zAxis.x, translation.x,
-		xAxis.y, yAxis.y, zAxis.y, translation.y,
-		xAxis.z, yAxis.z, zAxis.z, translation.z,
-		0.0f, 0.0f, 0.0f, 1.0f
-		);
-}
-
 
 inline void VMatrix::Init(
 	vec_t m00, vec_t m01, vec_t m02, vec_t m03,
@@ -629,6 +619,11 @@ inline const matrix3x4_t& VMatrix::As3x4() const
 	return *((const matrix3x4_t*)this);
 }
 
+inline matrix3x4_t& VMatrix::As3x4()
+{
+	return *((matrix3x4_t*)this);
+}
+
 inline void VMatrix::CopyFrom3x4( const matrix3x4_t &m3x4 )
 {
 	memcpy( m, m3x4.Base(), sizeof( matrix3x4_t ) );
@@ -691,7 +686,7 @@ inline VMatrix VMatrix::operator-() const
 	VMatrix ret;
 	for( int i=0; i < 16; i++ )
 	{
-		((float*)ret.m)[i] = ((float*)m)[i];
+		((float*)ret.m)[i] = -((float*)m)[i];
 	}
 	return ret;
 }
@@ -910,7 +905,6 @@ inline bool MatricesAreEqual( const VMatrix &src1, const VMatrix &src2, float fl
 void MatrixBuildOrtho( VMatrix& dst, double left, double top, double right, double bottom, double zNear, double zFar );
 void MatrixBuildPerspectiveX( VMatrix& dst, double flFovX, double flAspect, double flZNear, double flZFar );
 void MatrixBuildPerspectiveOffCenterX( VMatrix& dst, double flFovX, double flAspect, double flZNear, double flZFar, double bottom, double top, double left, double right );
-void MatrixBuildPerspectiveZRange( VMatrix& dst, double flZNear, double flZFar );
 
 inline void MatrixOrtho( VMatrix& dst, double left, double top, double right, double bottom, double zNear, double zFar )
 {

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//====== Copyright © 1996-2006, Valve Corporation, All rights reserved. =======//
 //
 // Purpose: Provide a class (SSE/SIMD only) holding a 2d matrix of class FourVectors,
 // for high speed processing in tools.
@@ -86,7 +86,7 @@ public:
 	{
 		SetSize( src.m_nWidth, src.m_nHeight );
 		if ( m_pData )
-			memcpy( static_cast<void*>(m_pData), src.m_pData, m_nHeight*m_nPaddedWidth*sizeof(m_pData[0]) ); 
+			memcpy( m_pData, src.m_pData, m_nHeight*m_nPaddedWidth*sizeof(m_pData[0]) ); 
 		return *this;
 	}
 
@@ -131,7 +131,7 @@ public:
 	void Clear( void )
 	{
 		Assert( m_pData );
-		memset( static_cast<void*>(m_pData), 0, m_nHeight*m_nPaddedWidth*sizeof(m_pData[0]) );
+		memset( m_pData, 0, m_nHeight*m_nPaddedWidth*sizeof(m_pData[0]) );
 	}
 
 	void RaiseToPower( float power );

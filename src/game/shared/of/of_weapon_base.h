@@ -6,7 +6,6 @@
 
 #include "basecombatweapon_shared.h"
 #include "of_weapon_parse.h"
-#include "econ/ihasowner.h"
 #include "predictable_entity.h"
 
 //--------------------------------------------------------------------------------------------------------
@@ -15,11 +14,11 @@
 //
 typedef enum
 {
-    WEAPON_NONE = 0,
+    WEAPON_NONE,
 
     WEAPON_OFTODO,
 
-    WEAPON_MAX,
+    WEAPON_OFMAX,
 } OFWeaponID;
 
 #if defined( CLIENT_DLL )
@@ -44,7 +43,7 @@ typedef enum
 */
 
 //OFTODO: Mark many COFWeaponBase getters const
-class COFWeaponBase: public CBaseCombatWeapon, IHasOwner /*, IHasGenericMeter */ {
+class COFWeaponBase: public CBaseCombatWeapon /*,IHasOwner */ /*, IHasGenericMeter */ {
     DECLARE_CLASS(COFWeaponBase, CBaseCombatWeapon);
     DECLARE_NETWORKCLASS();
     DECLARE_PREDICTABLE();
@@ -79,7 +78,7 @@ class COFWeaponBase: public CBaseCombatWeapon, IHasOwner /*, IHasGenericMeter */
 
     // All predicted weapons need to implement and return true
 	virtual bool        IsPredicted() const { return true; }
-    virtual OFWeaponID  GetWeaponID() const { return WEAPON_NONE; }
+    virtual int  GetWeaponID() const { return WEAPON_NONE; }
 
     // CBaseCombatWeapon::
     // virtual void Equip( CBaseCombatCharacter *pOwner ) override;
@@ -87,17 +86,15 @@ class COFWeaponBase: public CBaseCombatWeapon, IHasOwner /*, IHasGenericMeter */
     virtual bool VisibleInWeaponSelection() override;
     virtual bool HasAmmo() override;
     // virtual bool SendWeaponAnim( int iActivity ) override;
-    virtual bool CanHolster() const override;
+    virtual bool CanHolster() override;
     // virtual void Deploy() override;
     // virtual bool Holster( CBaseCombatWeapon *pSwitchingTo ) override;
     virtual void SetWeaponVisible( bool visible ) override;
     // virtual void OnActiveStateChanged( int iOldState ) override;
-    virtual void Detach() override;
     // virtual void ItemPostFrame() override;
     // virtual void ItemBusyFrame() override;
     // virtual void ItemHolsterFrame() override;
     // virtual void WeaponIdle() override;
-    virtual bool CanPerformSecondaryAttack() const override;
     // virtual void CheckReload() override;
     // virtual void FinishReload() override;
     // virtual void AbortReload() override;
@@ -138,7 +135,7 @@ class COFWeaponBase: public CBaseCombatWeapon, IHasOwner /*, IHasGenericMeter */
     // virtual void *GetItemPoseParamList(int *);
 
     // IHasOwner::
-    CBaseEntity *GetOwnerViaInterface () override;
+    // CBaseEntity *GetOwnerViaInterface () override;
 
     // virtual void StartHolsterAnim();
     // virtual void UpdateHands();

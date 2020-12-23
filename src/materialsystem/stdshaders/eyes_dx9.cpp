@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: eye renderer
 //
@@ -60,9 +60,6 @@ BEGIN_VS_SHADER( Eyes_dx9, "Help for Eyes" )
 
 	SHADER_FALLBACK
 	{
-		if ( g_pHardwareConfig->GetDXSupportLevel() < 90 )
-			return "Eyes_dx8";
-
 		return 0;
 	}
 

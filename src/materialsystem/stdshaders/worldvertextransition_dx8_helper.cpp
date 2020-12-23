@@ -1,14 +1,14 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //=============================================================================
 
-#include "worldvertextransition_dx8_helper.h"
+#include "worldvertexTransition_DX8_helper.h"
 #include "BaseVSShader.h"
 
-#include "WorldVertexTransition.inc"
+#include "worldvertextransition.inc"
 
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -64,11 +64,8 @@ void DrawWorldVertexTransitionEditor_DX8( CBaseVSShader *pShader, IMaterialVar**
 		// JasonM - Gnarly hack since we're calling this legacy shader from DX9
 		int nTextureTransformConst  = VERTEX_SHADER_SHADER_SPECIFIC_CONST_0;
 		int nTextureTransformConst2 = VERTEX_SHADER_SHADER_SPECIFIC_CONST_2;
-		if ( g_pHardwareConfig->GetDXSupportLevel() >= 90)
-		{
-			nTextureTransformConst  -= 10;
-			nTextureTransformConst2 -= 10;
-		}
+		nTextureTransformConst  -= 10;
+		nTextureTransformConst2 -= 10;
 
 		pShader->SetVertexShaderTextureTransform( nTextureTransformConst,  info.m_nBaseTextureTransformVar  );
 		pShader->SetVertexShaderTextureTransform( nTextureTransformConst2, info.m_nBaseTexture2TransformVar );

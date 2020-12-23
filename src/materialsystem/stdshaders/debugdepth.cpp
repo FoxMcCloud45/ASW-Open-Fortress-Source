@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -6,7 +6,7 @@
 // $NoKeywords: $
 //===========================================================================//
 
-#include "shaderlib/cshader.h"
+#include "shaderlib/CShader.h"
 #include "convar.h"
 #include "debugdrawdepth_vs20.inc"
 #include "debugdrawdepth_ps20.inc"
@@ -34,11 +34,6 @@ BEGIN_SHADER_FLAGS( DebugDepth, "Help for DebugDepth", SHADER_NOT_EDITABLE )
 	   
 	SHADER_FALLBACK
 	{
-		if( g_pHardwareConfig->GetDXSupportLevel() < 90 )
-		{
-//			Assert( 0 );
-			return "WireFrame";
-		}
 		return 0;
 	}
 

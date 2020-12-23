@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: A wet version of base * lightmap
 //
@@ -30,18 +30,13 @@ BEGIN_VS_SHADER( Cable_DX9,
 
 	SHADER_FALLBACK
 	{
-		if ( !(g_pHardwareConfig->SupportsPixelShaders_2_0() && g_pHardwareConfig->SupportsVertexShaders_2_0()) ||
-				(g_pHardwareConfig->GetDXSupportLevel() < 90) )
-		{
-			return "Cable_DX8";
-		}
 		return 0;
 	}
 
 	SHADER_INIT
 	{
 		LoadBumpMap( BUMPMAP );
-		LoadTexture( BASETEXTURE, TEXTUREFLAGS_SRGB );
+		LoadTexture( BASETEXTURE );
 	}
 
 	SHADER_DRAW
@@ -119,20 +114,17 @@ BEGIN_VS_SHADER( Cable_DX9,
 			pShaderAPI->SetPixelShaderConstant( PSREG_EYEPOS_SPEC_EXPONENT, vEyePos_SpecExponent, 1 );
 
 			DECLARE_DYNAMIC_VERTEX_SHADER( cable_vs20 );
-			SET_DYNAMIC_VERTEX_SHADER_COMBO( DOWATERFOG, pShaderAPI->GetSceneFogMode() == MATERIAL_FOG_LINEAR_BELOW_FOG_Z );
 			SET_DYNAMIC_VERTEX_SHADER( cable_vs20 );
 
 			if( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 			{
 				DECLARE_DYNAMIC_PIXEL_SHADER( cable_ps20b );
-				SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
 				SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITE_DEPTH_TO_DESTALPHA, bFullyOpaque && pShaderAPI->ShouldWriteDepthToDestAlpha() );
 				SET_DYNAMIC_PIXEL_SHADER( cable_ps20b );
 			}
 			else
 			{
 				DECLARE_DYNAMIC_PIXEL_SHADER( cable_ps20 );
-				SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
 				SET_DYNAMIC_PIXEL_SHADER( cable_ps20 );
 			}
 		}

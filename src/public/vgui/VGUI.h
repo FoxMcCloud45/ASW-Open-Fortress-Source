@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Basic header for using vgui
 //
@@ -22,7 +22,6 @@
 #endif
 #endif
 
-#pragma warning( disable: 4800 )	// disables 'performance warning converting int to bool'
 #pragma warning( disable: 4786 )	// disables 'identifier truncated in browser information' warning
 #pragma warning( disable: 4355 )	// disables 'this' : used in base member initializer list
 #pragma warning( disable: 4097 )	// warning C4097: typedef-name 'BaseClass' used as synonym for class-name
@@ -55,7 +54,6 @@ typedef unsigned int VPANEL;
 // handles to vgui objects
 // NULL values signify an invalid value
 typedef unsigned long HScheme;
-// Both -1 and 0 are used for invalid textures. Be careful.
 typedef unsigned long HTexture;
 typedef unsigned long HCursor;
 typedef unsigned long HPanel;
@@ -65,15 +63,6 @@ const HFont INVALID_FONT = 0; // the value of an invalid font handle
 }
 
 #include "tier1/strtools.h"
-
-#if 0 // defined( OSX ) // || defined( LINUX )
-// Disabled all platforms. Did a major cleanup of osxfont.cpp, and having this
-//  turned off renders much closer to Windows and Linux and also uses the same
-//  code paths (which is good).
-#define USE_GETKERNEDCHARWIDTH 1
-#else
-#define USE_GETKERNEDCHARWIDTH 0
-#endif
 
 
 #endif // VGUI_H

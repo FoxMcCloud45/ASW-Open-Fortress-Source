@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -46,7 +46,7 @@ public:
 	void			AddRecipientsByPVS( const Vector& origin );
 	void			RemoveRecipientsByPVS( const Vector& origin );
 	void			AddRecipientsByPAS( const Vector& origin );
-	void			AddRecipient( const CBasePlayer *player );
+	void			AddRecipient( CBasePlayer *player );
 	void			RemoveAllRecipients( void );
 	void			RemoveRecipient( CBasePlayer *player );
 	void			RemoveRecipientByPlayerIndex( int playerindex );
@@ -60,8 +60,10 @@ public:
 	bool			IgnorePredictionCull( void ) const;
 	void			SetIgnorePredictionCull( bool ignore );
 
-	void			AddPlayersFromBitMask( CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits );
-	void			RemovePlayersFromBitMask( CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits );
+	void			AddPlayersFromBitMask( CPlayerBitVec& playerbits );
+	void			RemovePlayersFromBitMask( CPlayerBitVec& playerbits );
+
+	void			RemoveSplitScreenPlayers();
 
 private:
 
@@ -82,7 +84,7 @@ private:
 class CSingleUserRecipientFilter : public CRecipientFilter
 {
 public:
-	CSingleUserRecipientFilter( const CBasePlayer *player )
+	CSingleUserRecipientFilter( CBasePlayer *player )
 	{
 		AddRecipient( player );
 	}
@@ -118,19 +120,6 @@ public:
 	CReliableBroadcastRecipientFilter( void )
 	{
 		MakeReliable();
-	}
-};
-
-//-----------------------------------------------------------------------------
-// Purpose: Simple class to create a filter for all players except for one ( unreliable )
-//-----------------------------------------------------------------------------
-class CBroadcastNonOwnerRecipientFilter : public CRecipientFilter
-{
-public:
-	CBroadcastNonOwnerRecipientFilter( CBasePlayer *player )
-	{
-		AddAllPlayers();
-		RemoveRecipient( player );
 	}
 };
 

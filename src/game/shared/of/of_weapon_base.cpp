@@ -51,12 +51,6 @@ LINK_ENTITY_TO_CLASS( tf_weapon_base, COFWeaponBase );
 COFWeaponBase::COFWeaponBase() {}
 
 //OFSTATUS: COMPLETE
-CBaseEntity *COFWeaponBase::GetOwnerViaInterface ()
-{
-    return CBaseCombatWeapon::GetOwner();
-}
-
-//OFSTATUS: COMPLETE
 bool COFWeaponBase::VisibleInWeaponSelection()
 {
     //NOTE: Trimmed code related to checking if the game is in training mode.
@@ -75,7 +69,7 @@ bool COFWeaponBase::HasAmmo()
 }
 
 //OFSTATUS: INCOMPLETE
-bool COFWeaponBase::CanHolster() const
+bool COFWeaponBase::CanHolster()
 {
     /*
     MysteryThing:  offset 0x769*4
@@ -197,19 +191,6 @@ void COFWeaponBase::SetWeaponVisible(bool visible)
     DispatchUpdateTransmitState((CBaseEntity *)this);
     return;
     */
-}
-
-//OFSTATUS: COMPLETE
-void COFWeaponBase::Detach() {
-    return;
-}
-
-//OFSTATUS: COMPLETE
-bool COFWeaponBase::CanPerformSecondaryAttack() const
-{
-    //NOTE: Trimmed code for checking if demo shield
-    
-    return CBaseCombatWeapon::CanPerformSecondaryAttack();
 }
 
 //OFSTATUS: COMPLETE

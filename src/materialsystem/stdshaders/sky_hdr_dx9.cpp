@@ -1,10 +1,11 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $Header: $
 // $NoKeywords: $
 //=============================================================================//
+
 #include "BaseVSShader.h"
 #include "sky_vs20.inc"
 #include "sky_ps20.inc"
@@ -14,7 +15,11 @@
 #include "sky_hdr_compressed_rgbs_ps20.inc"
 #include "sky_hdr_compressed_rgbs_ps20b.inc"
 
-#include "convar.h"
+#include "ConVar.h"
+
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
 
 static ConVar mat_use_compressed_hdr_textures( "mat_use_compressed_hdr_textures", "1" );
 
@@ -32,10 +37,6 @@ BEGIN_VS_SHADER( Sky_HDR_DX9, "Help for Sky_HDR_DX9 shader" )
 
 	SHADER_FALLBACK
 	{
-		if( g_pHardwareConfig->GetDXSupportLevel() < 90 || g_pHardwareConfig->GetHDRType() == HDR_TYPE_NONE )
-		{
-			return "Sky_DX9";
-		}
 		return 0;
 	}
 
@@ -46,81 +47,33 @@ BEGIN_VS_SHADER( Sky_HDR_DX9, "Help for Sky_HDR_DX9 shader" )
 	}
 	SHADER_INIT
 	{
-		// First figure out if sampler zero wants to be sRGB
-		int nSamplerZeroFlags = 0;
-		if ( (params[HDRCOMPRESSEDTEXTURE]->IsDefined()) &&	mat_use_compressed_hdr_textures.GetBool() )
+		if (params[HDRCOMPRESSEDTEXTURE]->IsDefined() && (mat_use_compressed_hdr_textures.GetBool() ) )
 		{
-			nSamplerZeroFlags = 0;
+			LoadTexture( HDRCOMPRESSEDTEXTURE );
 		}
 		else
 		{
 			if (params[HDRCOMPRESSEDTEXTURE0]->IsDefined())
 			{
-				nSamplerZeroFlags = 0;
-			}
-			else
-			{
-				nSamplerZeroFlags = TEXTUREFLAGS_SRGB;
-
-				if ( params[HDRBASETEXTURE]->IsDefined() && params[HDRBASETEXTURE]->IsTexture() )
+				LoadTexture( HDRCOMPRESSEDTEXTURE0 );
+				if (params[HDRCOMPRESSEDTEXTURE1]->IsDefined())
 				{
-					ITexture *txtr=params[HDRBASETEXTURE]->GetTextureValue();
-					ImageFormat fmt=txtr->GetImageFormat();
-					if ( ( fmt == IMAGE_FORMAT_RGBA16161616F ) || ( fmt == IMAGE_FORMAT_RGBA16161616 ) )
-					{
-						nSamplerZeroFlags = 0;
-					}
+					LoadTexture( HDRCOMPRESSEDTEXTURE1 );
 				}
-			}
-		}
-
-		// Next, figure out which texture will be on sampler zero
-		int nSampler0 = HDRCOMPRESSEDTEXTURE;
-		if ( params[HDRCOMPRESSEDTEXTURE]->IsDefined() && mat_use_compressed_hdr_textures.GetBool() )
-		{
-			nSampler0 = HDRCOMPRESSEDTEXTURE;
-		}
-		else
-		{
-			if ( params[HDRCOMPRESSEDTEXTURE0]->IsDefined() )
-			{
-				nSampler0 = HDRCOMPRESSEDTEXTURE0;
-			}
-			else
-			{
-				nSampler0 = HDRBASETEXTURE;
-			}
-		}
-
-		// Load the appropriate textures, making sure that the texture set on sampler 0 is sRGB if necessary
-		if ( params[HDRCOMPRESSEDTEXTURE]->IsDefined() && (mat_use_compressed_hdr_textures.GetBool() ) )
-		{
-			LoadTexture( HDRCOMPRESSEDTEXTURE, HDRCOMPRESSEDTEXTURE == nSampler0 ? nSamplerZeroFlags : 0 );
-		}
-		else
-		{
-			if (params[HDRCOMPRESSEDTEXTURE0]->IsDefined())
-			{
-				LoadTexture( HDRCOMPRESSEDTEXTURE0, HDRCOMPRESSEDTEXTURE0 == nSampler0 ? nSamplerZeroFlags : 0 );
-				if ( params[HDRCOMPRESSEDTEXTURE1]->IsDefined() )
+				if (params[HDRCOMPRESSEDTEXTURE2]->IsDefined())
 				{
-					LoadTexture( HDRCOMPRESSEDTEXTURE1, HDRCOMPRESSEDTEXTURE1 == nSampler0 ? nSamplerZeroFlags : 0 );
-				}
-				if ( params[HDRCOMPRESSEDTEXTURE2]->IsDefined())
-				{
-					LoadTexture( HDRCOMPRESSEDTEXTURE2, HDRCOMPRESSEDTEXTURE2 == nSampler0 ? nSamplerZeroFlags : 0 );
+					LoadTexture( HDRCOMPRESSEDTEXTURE2 );
 				}
 			}
 			else
 			{
-				if ( params[HDRBASETEXTURE]->IsDefined() )
+				if (params[HDRBASETEXTURE]->IsDefined())
 				{
-					LoadTexture( HDRBASETEXTURE, HDRBASETEXTURE == nSampler0 ? nSamplerZeroFlags : 0 );
+					LoadTexture( HDRBASETEXTURE );
 				}
 			}
 		}
 	}
-
 	SHADER_DRAW
 	{
 		SHADOW_STATE
@@ -219,8 +172,8 @@ BEGIN_VS_SHADER( Sky_HDR_DX9, "Help for Sky_HDR_DX9 shader" )
 				ITexture *txtr=params[HDRCOMPRESSEDTEXTURE]->GetTextureValue();
 				float w=txtr->GetActualWidth();
 				float h=txtr->GetActualHeight();
-				float FUDGE=0.01/max(w,h);					// per ATI
-				float c1[4]={(float)(0.5/w-FUDGE), (float)(0.5/h-FUDGE), w, h };
+				float FUDGE=0.01/MAX(w,h);					// per ATI
+				float c1[4]={0.5/w-FUDGE, 0.5/h-FUDGE, w, h };
 				pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_0, c1);
 
 				BindTexture( SHADER_SAMPLER0, HDRCOMPRESSEDTEXTURE, FRAME );

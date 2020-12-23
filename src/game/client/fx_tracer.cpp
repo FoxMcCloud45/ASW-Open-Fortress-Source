@@ -1,12 +1,8 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 //=============================================================================//
-
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * added check for OF_CLIENT_DLL define
-
 #include "cbase.h"
 #include "fx.h"
 #include "c_te_effect_dispatch.h"
@@ -18,7 +14,8 @@
 #include "tier0/memdbgon.h"
 
 ConVar r_drawtracers( "r_drawtracers", "1", FCVAR_CHEAT );
-ConVar r_drawtracers_firstperson( "r_drawtracers_firstperson", "1", FCVAR_ARCHIVE, "Toggle visibility of first person weapon tracers" );
+ConVar r_drawtracers_firstperson( "r_drawtracers_firstperson", "1" );
+void FormatViewModelAttachment( C_BasePlayer *pPlayer, Vector &vOrigin, bool bInverse );
 
 #define	TRACER_SPEED			5000 
 
@@ -30,7 +27,7 @@ Vector GetTracerOrigin( const CEffectData &data )
 	Vector vecStart = data.m_vStart;
 	QAngle vecAngles;
 
-	int iAttachment = data.m_nAttachmentIndex;
+	int iAttachment = data.m_nAttachmentIndex;;
 
 	// Attachment?
 	if ( data.m_fFlags & TRACER_FLAG_USEATTACHMENT )
@@ -44,23 +41,24 @@ Vector GetTracerOrigin( const CEffectData &data )
 
 		C_BaseEntity *pEnt = data.GetEntity();
 
-// This check should probably be for all multiplayer games, investigate later
-#if defined( HL2MP ) || defined( TF_CLIENT_DLL ) || defined ( OF_CLIENT_DLL )
-		if ( pEnt && pEnt->IsDormant() )
-			return vecStart;
-#endif
 
-		C_BaseCombatWeapon *pWpn = dynamic_cast<C_BaseCombatWeapon *>( pEnt );
-		if ( pWpn && pWpn->ShouldDrawUsingViewModel() )
+
+		FOR_EACH_VALID_SPLITSCREEN_PLAYER( hh )
 		{
-			C_BasePlayer *player = ToBasePlayer( pWpn->GetOwner() );
+			ACTIVE_SPLITSCREEN_PLAYER_GUARD( hh );		
 
-			// Use GetRenderedWeaponModel() instead?
-			pViewModel = player ? player->GetViewModel( 0 ) : NULL;
-			if ( pViewModel )
+			C_BaseCombatWeapon *pWpn = ToBaseCombatWeapon( pEnt );
+			if ( pWpn && pWpn->IsCarriedByLocalPlayer() )
 			{
-				// Get the viewmodel and use it instead
-				pRenderable = pViewModel;
+				C_BasePlayer *player = ToBasePlayer( pWpn->GetOwner() );
+
+				pViewModel = player ? player->GetViewModel( 0 ) : NULL;
+				if ( pViewModel )
+				{
+					// Get the viewmodel and use it instead
+					pRenderable = pViewModel;
+					break;
+				}
 			}
 		}
 
@@ -80,8 +78,7 @@ Vector GetTracerOrigin( const CEffectData &data )
 //-----------------------------------------------------------------------------
 void TracerCallback( const CEffectData &data )
 {
-	C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
-	if ( !player )
+	if ( !C_BasePlayer::HasAnyLocalPlayer() )
 		return;
 
 	if ( !r_drawtracers.GetBool() )
@@ -89,9 +86,8 @@ void TracerCallback( const CEffectData &data )
 
 	if ( !r_drawtracers_firstperson.GetBool() )
 	{
-		C_BasePlayer *pPlayer = dynamic_cast<C_BasePlayer*>( data.GetEntity() );
-
-		if ( pPlayer && !pPlayer->ShouldDrawThisPlayer() )
+		C_BaseViewModel *pViewModel = ToBaseViewModel(data.GetEntity());
+		if ( pViewModel )
 			return;
 	}
 
@@ -101,8 +97,9 @@ void TracerCallback( const CEffectData &data )
 	bool bWhiz = (data.m_fFlags & TRACER_FLAG_WHIZ);
 	int iEntIndex = data.entindex();
 
-	if ( iEntIndex && iEntIndex == player->index )
+	if ( IsPlayerIndex( iEntIndex ) && C_BasePlayer::IsLocalPlayer( C_BaseEntity::Instance( iEntIndex ) ) )
 	{
+		ACTIVE_SPLITSCREEN_PLAYER_GUARD_ENT( C_BaseEntity::Instance( iEntIndex ) );
 		Vector	foo = data.m_vStart;
 		QAngle	vangles;
 		Vector	vforward, vright, vup;
@@ -127,15 +124,19 @@ void TracerCallback( const CEffectData &data )
 	FX_Tracer( (Vector&)vecStart, (Vector&)data.m_vOrigin, flVelocity, bWhiz );
 }
 
-DECLARE_CLIENT_EFFECT( "Tracer", TracerCallback );
+DECLARE_CLIENT_EFFECT_BEGIN( Tracer, TracerCallback )
+	PRECACHE( MATERIAL, "effects/spark" )
+	PRECACHE( GAMESOUND, "Bullets.DefaultNearmiss" )
+DECLARE_CLIENT_EFFECT_END()
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+static int s_nWeaponTracerIndex;
+
 void ParticleTracerCallback( const CEffectData &data )
 {
-	C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
-	if ( !player )
+	if ( !C_BasePlayer::HasAnyLocalPlayer() )
 		return;
 
 	if ( !r_drawtracers.GetBool() )
@@ -143,44 +144,67 @@ void ParticleTracerCallback( const CEffectData &data )
 
 	if ( !r_drawtracers_firstperson.GetBool() )
 	{
-		C_BasePlayer *pPlayer = dynamic_cast<C_BasePlayer*>( data.GetEntity() );
-
-		if ( pPlayer && !pPlayer->ShouldDrawThisPlayer() )
+		C_BaseViewModel *pViewModel = ToBaseViewModel(data.GetEntity());
+		if ( pViewModel )
 			return;
 	}
-
+	
+	Vector vecEnd;
 	// Grab the data
-	Vector vecStart = GetTracerOrigin( data );
-	Vector vecEnd = data.m_vOrigin;
-
-	// Adjust view model tracers
 	C_BaseEntity *pEntity = data.GetEntity();
-	if ( data.entindex() && data.entindex() == player->index )
+	C_BaseViewModel *pViewModel = ToBaseViewModel(pEntity);
+	C_BaseCombatWeapon *pWpn = (pEntity) ? pEntity->MyCombatWeaponPointer() : NULL;
+	if ( !pWpn && !pViewModel )
 	{
-		QAngle	vangles;
-		Vector	vforward, vright, vup;
+		Vector vecStart = GetTracerOrigin( data );
+		vecEnd = data.m_vOrigin;
 
-		engine->GetViewAngles( vangles );
-		AngleVectors( vangles, &vforward, &vright, &vup );
+		if ( data.entindex() && C_BasePlayer::IsLocalPlayer( pEntity ) )
+		{
+			ACTIVE_SPLITSCREEN_PLAYER_GUARD( pEntity );
+			QAngle	vangles;
+			Vector	vforward, vright, vup;
 
-		VectorMA( data.m_vStart, 4, vright, vecStart );
-		vecStart[2] -= 0.5f;
+			engine->GetViewAngles( vangles );
+			AngleVectors( vangles, &vforward, &vright, &vup );
+
+			VectorMA( data.m_vStart, 4, vright, vecStart );
+			vecStart[2] -= 0.5f;
+		}
+
+		// Create the particle effect
+		QAngle vecAngles;
+		Vector vecToEnd = vecEnd - vecStart;
+		VectorNormalize(vecToEnd);
+		VectorAngles( vecToEnd, vecAngles );
+		DispatchParticleEffect( s_nWeaponTracerIndex, vecStart, vecEnd, vecAngles );
 	}
+	else
+	{
+		Vector vecStart = GetTracerOrigin( data );  
+		vecEnd = data.m_vOrigin;
+		QAngle dummy;
+		
+		if ( pViewModel )
+		{
+			C_BasePlayer *pPlayer = ToBasePlayer( ((C_BaseViewModel *)pViewModel)->GetOwner() );
+			FormatViewModelAttachment( pPlayer, vecStart, true );
+		}
 
-	// Create the particle effect
-	QAngle vecAngles;
-	Vector vecToEnd = vecEnd - vecStart;
-	VectorNormalize(vecToEnd);
-	VectorAngles( vecToEnd, vecAngles );
-	DispatchParticleEffect( data.m_nHitBox, vecStart, vecEnd, vecAngles, pEntity );
+		DispatchParticleEffect( s_nWeaponTracerIndex, vecStart, vecEnd, dummy );
+	}
 
 	if ( data.m_fFlags & TRACER_FLAG_WHIZ )
 	{
+		Vector vecStart = data.m_vStart;
 		FX_TracerSound( vecStart, vecEnd, TRACER_TYPE_DEFAULT );	
 	}
 }
 
-DECLARE_CLIENT_EFFECT( "ParticleTracer", ParticleTracerCallback );
+DECLARE_CLIENT_EFFECT_BEGIN( ParticleTracer, ParticleTracerCallback );
+	PRECACHE_INDEX( PARTICLE_SYSTEM, "weapon_tracers", s_nWeaponTracerIndex )
+DECLARE_CLIENT_EFFECT_END()
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -194,5 +218,5 @@ void TracerSoundCallback( const CEffectData &data )
 	FX_TracerSound( vecStart, (Vector&)data.m_vOrigin, data.m_fFlags );
 }
 
-DECLARE_CLIENT_EFFECT( "TracerSound", TracerSoundCallback );
+DECLARE_CLIENT_EFFECT( TracerSound, TracerSoundCallback );
 

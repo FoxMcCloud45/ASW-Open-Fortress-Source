@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		An NPC's memory of potential enemies 
 //
@@ -18,7 +18,7 @@ DECLARE_POINTER_HANDLE(AIEnemiesIter_t);
 const float AI_DEF_ENEMY_DISCARD_TIME = 60.0;
 
 #define AI_UNKNOWN_ENEMY (((CBaseEntity *)NULL)+1) // use this to probe for unseen attackers
-#define AI_INVALID_TIME (-FLT_MAX)
+#define AI_INVALID_TIME (FLT_MAX * -1.0)
 
 //-----------------------------------------------------------------------------
 // AI_EnemyInfo_t
@@ -40,6 +40,7 @@ struct AI_EnemyInfo_t
 	float			timeValidEnemy;		// First time can be selected (reaction delay)
 	float			timeLastReceivedDamageFrom;
 	float			timeAtFirstHand;	// Time at which the enemy was seen firsthand
+	int				nFaction;			// The faction the enemy belongs to
 	bool			bDangerMemory;		// Memory of danger position w/o Enemy pointer
 	bool			bEludedMe;			// True if enemy not at last known location 
 	bool			bUnforgettable;

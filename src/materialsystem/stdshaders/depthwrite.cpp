@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2007, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -7,6 +7,7 @@
 //=============================================================================//
 
 #include "BaseVSShader.h"
+#include "convar.h"
 
 #include "depthwrite_ps20.inc"
 #include "depthwrite_ps20b.inc"
@@ -17,11 +18,34 @@
 #include "depthwrite_vs30.inc"
 #endif
 
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
+static ConVar mat_displacementmap( "mat_displacementmap", "1", FCVAR_CHEAT );
+
 BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 
 	BEGIN_SHADER_PARAMS
 		SHADER_PARAM( ALPHATESTREFERENCE, SHADER_PARAM_TYPE_FLOAT, "", "Alpha reference value" )
-		SHADER_PARAM( COLOR_DEPTH, SHADER_PARAM_TYPE_BOOL, "0", "Write depth as color")
+		SHADER_PARAM( DISPLACEMENTMAP, SHADER_PARAM_TYPE_TEXTURE, "shadertest/BaseTexture", "Displacement map" )
+		SHADER_PARAM( DISPLACEMENTWRINKLE, SHADER_PARAM_TYPE_BOOL, "0", "Displacement map contains wrinkle displacements")
+		
+		// vertexlitgeneric tree sway animation control
+		SHADER_PARAM( TREESWAY, SHADER_PARAM_TYPE_INTEGER, "0", "" );
+		SHADER_PARAM( TREESWAYHEIGHT, SHADER_PARAM_TYPE_FLOAT, "1000", "" );
+		SHADER_PARAM( TREESWAYSTARTHEIGHT, SHADER_PARAM_TYPE_FLOAT, "0.2", "" );
+		SHADER_PARAM( TREESWAYRADIUS, SHADER_PARAM_TYPE_FLOAT, "300", "" );
+		SHADER_PARAM( TREESWAYSTARTRADIUS, SHADER_PARAM_TYPE_FLOAT, "0.1", "" );
+		SHADER_PARAM( TREESWAYSPEED, SHADER_PARAM_TYPE_FLOAT, "1", "" );
+		SHADER_PARAM( TREESWAYSPEEDHIGHWINDMULTIPLIER, SHADER_PARAM_TYPE_FLOAT, "2", "" );
+		SHADER_PARAM( TREESWAYSTRENGTH, SHADER_PARAM_TYPE_FLOAT, "10", "" );
+		SHADER_PARAM( TREESWAYSCRUMBLESPEED, SHADER_PARAM_TYPE_FLOAT, "0.1", "" );
+		SHADER_PARAM( TREESWAYSCRUMBLESTRENGTH, SHADER_PARAM_TYPE_FLOAT, "0.1", "" );
+		SHADER_PARAM( TREESWAYSCRUMBLEFREQUENCY, SHADER_PARAM_TYPE_FLOAT, "0.1", "" );
+		SHADER_PARAM( TREESWAYFALLOFFEXP, SHADER_PARAM_TYPE_FLOAT, "1.5", "" );
+		SHADER_PARAM( TREESWAYSCRUMBLEFALLOFFEXP, SHADER_PARAM_TYPE_FLOAT, "1.0", "" );
+		SHADER_PARAM( TREESWAYSPEEDLERPSTART, SHADER_PARAM_TYPE_FLOAT, "3", "" );
+		SHADER_PARAM( TREESWAYSPEEDLERPEND, SHADER_PARAM_TYPE_FLOAT, "6", "" );
 	END_SHADER_PARAMS
 
 	SHADER_INIT_PARAMS()
@@ -31,21 +55,26 @@ BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 
 	SHADER_FALLBACK
 	{
-		if ( g_pHardwareConfig->GetDXSupportLevel() < 90 )
-		{
-			return "Wireframe";
-		}
 		return 0;
 	}
 
 	SHADER_INIT
 	{
+		if ( params[DISPLACEMENTMAP]->IsDefined() )
+		{
+			LoadTexture( DISPLACEMENTMAP );
+		}
 	}
 
 	SHADER_DRAW
 	{
 		bool bAlphaClip = IS_FLAG_SET( MATERIAL_VAR_ALPHATEST );
-		int nColorDepth = GetIntParam( COLOR_DEPTH, params, 0 );
+		int nTreeSwayMode = GetIntParam( TREESWAY, params, 0 );
+		nTreeSwayMode = clamp( nTreeSwayMode, 0, 2 );
+		bool bHasDisplacement = params[DISPLACEMENTMAP]->IsTexture();
+#if !defined( PLATFORM_X360 )
+		bool bHasDisplacementWrinkles = params[DISPLACEMENTWRINKLE]->GetIntValue() != 0;
+#endif
 
 		SHADOW_STATE
 		{
@@ -55,16 +84,13 @@ BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 			int userDataSize = 0;
 			pShaderShadow->VertexShaderVertexFormat( flags, nTexCoordCount, NULL, userDataSize );
 
-			if ( nColorDepth == 0 )
-			{
-				// Bias primitives when rendering into shadow map so we get slope-scaled depth bias
-				// rather than having to apply a constant bias in the filtering shader later
-				pShaderShadow->EnablePolyOffset( SHADER_POLYOFFSET_SHADOW_BIAS );
-			}
+			// Bias primitives when rendering into shadow map so we get slope-scaled depth bias
+			// rather than having to apply a constant bias in the filtering shader later
+			pShaderShadow->EnablePolyOffset( SHADER_POLYOFFSET_SHADOW_BIAS );
 
 			// Turn off writes to color buffer since we always sample shadows from the DEPTH texture later
 			// This gives us double-speed fill when rendering INTO the shadow map
-			pShaderShadow->EnableColorWrites( ( nColorDepth == 1 ) );
+			pShaderShadow->EnableColorWrites( false );
 			pShaderShadow->EnableAlphaWrites( false );
 
 			// Don't backface cull unless alpha clipping, since this can cause artifacts when the
@@ -72,33 +98,36 @@ BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 			// If a material was already marked nocull, don't cull it
 			pShaderShadow->EnableCulling( IS_FLAG_SET(MATERIAL_VAR_ALPHATEST) && !IS_FLAG_SET(MATERIAL_VAR_NOCULL) );
 
+
+
+			if ( bHasDisplacement && IsPC() && g_pHardwareConfig->HasFastVertexTextures() )
+			{
+				pShaderShadow->EnableVertexTexture( SHADER_VERTEXTEXTURE_SAMPLER2, true );
+			}
+
+
+
 #ifndef _X360
 			if ( !g_pHardwareConfig->HasFastVertexTextures() )
 #endif
 			{
 				DECLARE_STATIC_VERTEX_SHADER( depthwrite_vs20 );
-				SET_STATIC_VERTEX_SHADER_COMBO( ONLY_PROJECT_POSITION, !bAlphaClip && IsX360() && !nColorDepth ); //360 needs to know if it *shouldn't* output texture coordinates to avoid shader patches
-				SET_STATIC_VERTEX_SHADER_COMBO( COLOR_DEPTH, nColorDepth );
+				SET_STATIC_VERTEX_SHADER_COMBO( ONLY_PROJECT_POSITION, !bAlphaClip && IsX360() ); //360 needs to know if it *shouldn't* output texture coordinates to avoid shader patches
+				SET_STATIC_VERTEX_SHADER_COMBO( TREESWAY, nTreeSwayMode );
 				SET_STATIC_VERTEX_SHADER( depthwrite_vs20 );
-				
-				if ( bAlphaClip || g_pHardwareConfig->PlatformRequiresNonNullPixelShaders() || nColorDepth )
+
+				if( bAlphaClip )
 				{
-					if( bAlphaClip )
-					{
-						pShaderShadow->EnableTexture( SHADER_SAMPLER0, true );
-						pShaderShadow->EnableSRGBRead( SHADER_SAMPLER0, true );
-					}
+					pShaderShadow->EnableTexture( SHADER_SAMPLER0, true );
 
 					if( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 					{
 						DECLARE_STATIC_PIXEL_SHADER( depthwrite_ps20b );
-						SET_STATIC_PIXEL_SHADER_COMBO( COLOR_DEPTH, nColorDepth );
 						SET_STATIC_PIXEL_SHADER( depthwrite_ps20b );
 					}
 					else
 					{
 						DECLARE_STATIC_PIXEL_SHADER( depthwrite_ps20 );
-						SET_STATIC_PIXEL_SHADER_COMBO( COLOR_DEPTH, nColorDepth );
 						SET_STATIC_PIXEL_SHADER( depthwrite_ps20 );
 					}
 				}
@@ -107,17 +136,17 @@ BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 			else
 			{
 				SET_FLAGS2( MATERIAL_VAR2_USES_VERTEXID );
+				SET_FLAGS2( MATERIAL_VAR2_SUPPORTS_TESSELLATION );
 
 				DECLARE_STATIC_VERTEX_SHADER( depthwrite_vs30 );
 				SET_STATIC_VERTEX_SHADER_COMBO( ONLY_PROJECT_POSITION, 0 ); //360 only combo, and this is a PC path
-				SET_STATIC_VERTEX_SHADER_COMBO( COLOR_DEPTH, nColorDepth );
+				SET_STATIC_VERTEX_SHADER_COMBO( TREESWAY, nTreeSwayMode );
 				SET_STATIC_VERTEX_SHADER( depthwrite_vs30 );
 
 				pShaderShadow->EnableTexture( SHADER_SAMPLER0, true );
-				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER0, true );
+				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER0, true );		// irrelevant, since we just need alpha
 
 				DECLARE_STATIC_PIXEL_SHADER( depthwrite_ps30 );
-				SET_STATIC_PIXEL_SHADER_COMBO( COLOR_DEPTH, nColorDepth );
 				SET_STATIC_PIXEL_SHADER( depthwrite_ps30 );
 			}
 #endif
@@ -129,10 +158,11 @@ BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 			if ( !g_pHardwareConfig->HasFastVertexTextures() )
 #endif
 			{
-				depthwrite_vs20_Dynamic_Index vshIndex;
-				vshIndex.SetSKINNING( pShaderAPI->GetCurrentNumBones() > 0 );
-				vshIndex.SetCOMPRESSED_VERTS( (int)vertexCompression );
-				pShaderAPI->SetVertexShaderIndex( vshIndex.GetIndex() );
+				DECLARE_DYNAMIC_VERTEX_SHADER( depthwrite_vs20 );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( SKINNING, pShaderAPI->GetCurrentNumBones() > 0 );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( COMPRESSED_VERTS, ( int )vertexCompression );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( TESSELLATION, 0 );
+				SET_DYNAMIC_VERTEX_SHADER( depthwrite_vs20 );
 
 				if ( bAlphaClip )
 				{
@@ -163,13 +193,39 @@ BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 #ifndef _X360
 			else // 3.0 shader case (PC only)
 			{
+				TessellationMode_t nTessellationMode = pShaderAPI->GetTessellationMode();
+				if ( nTessellationMode != TESSELLATION_MODE_DISABLED )
+				{
+					pShaderAPI->BindStandardVertexTexture( SHADER_VERTEXTEXTURE_SAMPLER1, TEXTURE_SUBDIVISION_PATCHES );
+
+					float vSubDControls[4] = { 1.0f/pShaderAPI->GetSubDHeight(),
+						bHasDisplacement && mat_displacementmap.GetBool() ? 1.0f : 0.0f,
+						bHasDisplacementWrinkles && mat_displacementmap.GetBool() ? 1.0f : 0.0f, 0.0f };
+
+					pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_8, vSubDControls );
+
+					if( bHasDisplacement )
+					{
+						BindVertexTexture( SHADER_VERTEXTEXTURE_SAMPLER2, DISPLACEMENTMAP );
+					}
+					else
+					{
+						pShaderAPI->BindStandardVertexTexture( SHADER_VERTEXTEXTURE_SAMPLER2, TEXTURE_BLACK );
+					}
+
+					// Currently, tessellation is mutually exclusive with any kind of GPU-side skinning, morphing or vertex compression
+					Assert( !pShaderAPI->IsHWMorphingEnabled() );
+					Assert( pShaderAPI->GetCurrentNumBones() == 0 );
+					Assert( vertexCompression == 0);
+				}
+
 				SetHWMorphVertexShaderState( VERTEX_SHADER_SHADER_SPECIFIC_CONST_6, VERTEX_SHADER_SHADER_SPECIFIC_CONST_7, SHADER_VERTEXTEXTURE_SAMPLER0 );
 
-				depthwrite_vs30_Dynamic_Index vshIndex;
-				vshIndex.SetSKINNING( pShaderAPI->GetCurrentNumBones() > 0 );
-				vshIndex.SetMORPHING( pShaderAPI->IsHWMorphingEnabled() );
-				vshIndex.SetCOMPRESSED_VERTS( (int)vertexCompression );
-				pShaderAPI->SetVertexShaderIndex( vshIndex.GetIndex() );
+				DECLARE_DYNAMIC_VERTEX_SHADER( depthwrite_vs30 );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( SKINNING, ( pShaderAPI->GetCurrentNumBones() > 0 ) && ( nTessellationMode == TESSELLATION_MODE_DISABLED ) );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( COMPRESSED_VERTS, (int)vertexCompression && ( nTessellationMode == TESSELLATION_MODE_DISABLED ) );
+				SET_DYNAMIC_VERTEX_SHADER_COMBO( TESSELLATION, nTessellationMode );
+				SET_DYNAMIC_VERTEX_SHADER( depthwrite_vs30 );
 
 				if ( bAlphaClip )
 				{
@@ -190,15 +246,42 @@ BEGIN_VS_SHADER_FLAGS( DepthWrite, "Help for Depth Write", SHADER_NOT_EDITABLE )
 			}
 #endif
 
-			Vector4D vParms;
+			if ( nTreeSwayMode != 0 )
+			{
+				float flParams[4];
 
-			// set up arbitrary far planes, as the real ones are too far ( 30,000 )
-//			pShaderAPI->SetPSNearAndFarZ( 1 );
-			vParms.x = 7.0f;		// arbitrary near
-			vParms.y = 4000.0f;		// arbitrary far 
-			vParms.z = 0.0f;
-			vParms.w = 0.0f;
-			pShaderAPI->SetPixelShaderConstant( 1, vParms.Base(), 2 );
+				flParams[0] = pShaderAPI->CurrentTime();
+				Vector windDir = pShaderAPI->GetVectorRenderingParameter( VECTOR_RENDERPARM_WIND_DIRECTION );
+				flParams[1] = windDir.x;
+				flParams[2] = windDir.y;
+				flParams[3] = 0.0f;
+				pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_2, flParams );
+
+				flParams[0] = GetFloatParam( TREESWAYSCRUMBLEFALLOFFEXP, params, 1.0f );
+				flParams[1] = GetFloatParam( TREESWAYFALLOFFEXP, params, 1.0f );
+				flParams[2] = GetFloatParam( TREESWAYSCRUMBLESPEED, params, 3.0f );
+				flParams[3] = GetFloatParam( TREESWAYSPEEDHIGHWINDMULTIPLIER, params, 2.0f );
+				pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_3, flParams );
+
+				flParams[0] = GetFloatParam( TREESWAYHEIGHT, params, 1000.0f );
+				flParams[1] = GetFloatParam( TREESWAYSTARTHEIGHT, params, 0.1f );
+				flParams[2] = GetFloatParam( TREESWAYRADIUS, params, 300.0f );
+				flParams[3] = GetFloatParam( TREESWAYSTARTRADIUS, params, 0.2f );
+				pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_4, flParams );
+
+				flParams[0] = GetFloatParam( TREESWAYSPEED, params, 1.0f );
+				flParams[1] = GetFloatParam( TREESWAYSTRENGTH, params, 10.0f );
+				flParams[2] = GetFloatParam( TREESWAYSCRUMBLEFREQUENCY, params, 12.0f );
+				flParams[3] = GetFloatParam( TREESWAYSCRUMBLESTRENGTH, params, 10.0f );
+				pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_5, flParams );
+
+				flParams[0] = GetFloatParam( TREESWAYSPEEDLERPSTART, params, 3.0f );
+				flParams[1] = GetFloatParam( TREESWAYSPEEDLERPEND, params, 6.0f );
+				flParams[2] = 0.0f;
+				flParams[3] = 0.0f;
+				pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_9, flParams );
+
+			}
 
 		}	// DYNAMIC_STATE
 

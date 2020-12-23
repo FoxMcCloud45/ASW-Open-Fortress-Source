@@ -1,12 +1,10 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: Random number generator
 //
 // $Workfile: $
 // $NoKeywords: $
 //===========================================================================//
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * Replace OVERRIDE macro with override, as defining override to nothing is prettier.
 
 #ifndef VSTDLIB_RANDOM_H
 #define VSTDLIB_RANDOM_H
@@ -24,11 +22,9 @@
 //-----------------------------------------------------------------------------
 // A generator of uniformly distributed random numbers
 //-----------------------------------------------------------------------------
-class VSTDLIB_CLASS IUniformRandomStream
+class IUniformRandomStream
 {
 public:
-	//virtual ~IUniformRandomStream() { }
-
 	// Sets the seed of the random number generator
 	virtual void	SetSeed( int iSeed ) = 0;
 
@@ -90,6 +86,7 @@ private:
 	CThreadFastMutex m_mutex;
 };
 
+
 //-----------------------------------------------------------------------------
 // A couple of convenience functions to access the library's global uniform stream
 //-----------------------------------------------------------------------------
@@ -99,17 +96,6 @@ VSTDLIB_INTERFACE float	RandomFloatExp( float flMinVal = 0.0f, float flMaxVal = 
 VSTDLIB_INTERFACE int	RandomInt( int iMinVal, int iMaxVal );
 VSTDLIB_INTERFACE float	RandomGaussianFloat( float flMean = 0.0f, float flStdDev = 1.0f );
 
-//-----------------------------------------------------------------------------
-// IUniformRandomStream interface for free functions
-//-----------------------------------------------------------------------------
-class VSTDLIB_CLASS CDefaultUniformRandomStream : public IUniformRandomStream
-{
-public:
-	virtual void	SetSeed( int iSeed ) override												{ RandomSeed( iSeed ); }
-	virtual float	RandomFloat( float flMinVal, float flMaxVal ) override						{ return ::RandomFloat( flMinVal, flMaxVal ); }
-	virtual int		RandomInt( int iMinVal, int iMaxVal ) override								{ return ::RandomInt( iMinVal, iMaxVal ); }
-	virtual float	RandomFloatExp( float flMinVal, float flMaxVal, float flExponent ) override	{ return ::RandomFloatExp( flMinVal, flMaxVal, flExponent ); }
-};
 
 //-----------------------------------------------------------------------------
 // Installs a global random number generator, which will affect the Random functions above

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:
 //
@@ -77,7 +77,7 @@ struct AIMoveTrace_t
 {
 	AIMoveTrace_t()
 	{
-		memset( static_cast<void*>(this), 0, sizeof(*this) );
+		memset( this, 0, sizeof(*this) );
 	}
 	
 	AIMoveResult_t 	fStatus;				// See AIMoveResult_t
@@ -124,7 +124,7 @@ struct AILocalMoveGoal_t
 {
 	AILocalMoveGoal_t()
 	{
-		memset( static_cast<void*>(this), 0, sizeof(*this) );
+		memset( this, 0, sizeof(*this) );
 	}
 	
 	// Object of the goal

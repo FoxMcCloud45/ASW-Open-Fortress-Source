@@ -7,7 +7,6 @@
 #include "usermessages.h"
 #include "shake.h"
 #include "voice_gamemgr.h"
-#include "haptics/haptic_msgs.h"
 
 //OFSTATUS: Copied from SDK (incorrect)
 void RegisterUserMessages()
@@ -47,8 +46,5 @@ void RegisterUserMessages()
 
 	// Used to send a sample HUD message
 	usermessages->Register( "GameMessage", -1 );
-	
-	// NVNT register haptic user messages
-	RegisterHapticMessages();
 }
 

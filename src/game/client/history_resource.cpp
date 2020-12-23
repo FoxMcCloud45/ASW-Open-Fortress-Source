@@ -1,13 +1,9 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Item pickup history displayed onscreen when items are picked up.
 //
 // $NoKeywords: $
 //=============================================================================//
-
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * added check for OF_CLIENT_DLL define
-
 #include "cbase.h"
 #include "history_resource.h"
 #include "hud_macros.h"
@@ -34,7 +30,7 @@ DECLARE_HUD_MESSAGE( CHudHistoryResource, AmmoDenied );
 CHudHistoryResource::CHudHistoryResource( const char *pElementName ) :
 	CHudElement( pElementName ), BaseClass( NULL, "HudHistoryResource" )
 {	
-	vgui::Panel *pParent = g_pClientMode->GetViewport();
+	vgui::Panel *pParent = GetClientMode()->GetViewport();
 	SetParent( pParent );
 	m_bDoNotDraw = true;
 	m_wcsAmmoFullMsg[0] = 0;
@@ -92,8 +88,8 @@ void CHudHistoryResource::SetHistoryGap( int iNewHistoryGap )
 void CHudHistoryResource::AddToHistory( C_BaseCombatWeapon *weapon )
 {
 	// don't draw exhaustable weapons (grenades) since they'll have an ammo pickup icon as well
- 	if ( weapon->GetWpnData().iFlags & ITEM_FLAG_EXHAUSTIBLE )
- 		return;
+	if ( weapon->GetWpnData().iFlags & ITEM_FLAG_EXHAUSTIBLE )
+		return;
 
 	int iId = weapon->entindex();
 
@@ -121,16 +117,6 @@ void CHudHistoryResource::AddToHistory( int iType, int iId, int iCount )
 		if ( !iCount )
 			return;
 
-#if defined( CSTRIKE_DLL )
-		// don't leave blank gaps for ammo we're not going to display
-		const FileWeaponInfo_t *pWpnInfo = gWR.GetWeaponFromAmmo( iId );
-		if ( pWpnInfo && ( pWpnInfo->iMaxClip1 >= 0 || pWpnInfo->iMaxClip2 >= 0 ) )
-		{
-			if ( !pWpnInfo->iconSmall )
-				return;
-		}
-#endif
-
 		// clear out any ammo pickup denied icons, since we can obviously pickup again
 		for ( int i = 0; i < m_PickupHistory.Count(); i++ )
 		{
@@ -157,7 +143,7 @@ void CHudHistoryResource::AddToHistory( int iType, const char *szName, int iCoun
 		return;
 
 	// Get the item's icon
-	CHudTexture *i = gHUD.GetIcon( szName );
+	CHudTexture *i = HudIcons().GetIcon( szName );
 	if ( i == NULL )
 		return;  
 
@@ -180,14 +166,14 @@ void CHudHistoryResource::AddIconToHistory( int iType, int iId, C_BaseCombatWeap
 	// If the history resource is appearing, slide the hint message element down
 	if ( m_iCurrentHistorySlot == 0 )
 	{
-		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HintMessageLower" ); 
+		GetClientMode()->GetViewportAnimationController()->StartAnimationSequence( "HintMessageLower" ); 
 	}
 
 	// ensure the size 
 	m_PickupHistory.EnsureCount(m_iCurrentHistorySlot + 1);
 
 	// default to just writing to the first slot
-	HIST_ITEM *freeslot = &m_PickupHistory[m_iCurrentHistorySlot];
+	HIST_ITEM *freeslot = &m_PickupHistory[m_iCurrentHistorySlot++];
 
 	if ( iType == HISTSLOT_AMMODENIED && freeslot->DisplayTime )
 	{
@@ -209,8 +195,6 @@ void CHudHistoryResource::AddIconToHistory( int iType, int iId, C_BaseCombatWeap
 	{
 		freeslot->DisplayTime = gpGlobals->curtime + hud_drawhistory_time.GetFloat();
 	}
-
-	++m_iCurrentHistorySlot;
 }
 
 
@@ -274,7 +258,7 @@ void CHudHistoryResource::CheckClearHistory( void )
 	m_iCurrentHistorySlot = 0;
 
 	// Slide the hint message element back up
-	g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HintMessageRaise" ); 
+	GetClientMode()->GetViewportAnimationController()->StartAnimationSequence( "HintMessageRaise" ); 
 }
 
 //-----------------------------------------------------------------------------
@@ -284,11 +268,9 @@ void CHudHistoryResource::CheckClearHistory( void )
 //-----------------------------------------------------------------------------
 bool CHudHistoryResource::ShouldDraw( void )
 {
-#if defined( TF_CLIENT_DLL ) || defined( OF_CLIENT_DLL )
-	return false;
-#else
+
 	return ( ( m_iCurrentHistorySlot > 0 || m_bNeedsDraw ) && CHudElement::ShouldDraw() );
-#endif
+
 }
 
 //-----------------------------------------------------------------------------
@@ -325,7 +307,7 @@ void CHudHistoryResource::Paint( void )
 
 			float elapsed = m_PickupHistory[i].DisplayTime - gpGlobals->curtime;
 			float scale = elapsed * 80;
-			Color clr = gHUD.m_clrNormal;
+			Color clr = GetHud().m_clrNormal;
 			clr[3] = MIN( scale, 255 );
 
 			bool bUseAmmoFullMsg = false;
@@ -341,7 +323,6 @@ void CHudHistoryResource::Paint( void )
 			case HISTSLOT_AMMO:
 				{
 					// Get the weapon we belong to
-#ifndef HL2MP
 					const FileWeaponInfo_t *pWpnInfo = gWR.GetWeaponFromAmmo( m_PickupHistory[i].iId );
 					if ( pWpnInfo && ( pWpnInfo->iMaxClip1 >= 0 || pWpnInfo->iMaxClip2 >= 0 ) )
 					{
@@ -350,21 +331,10 @@ void CHudHistoryResource::Paint( void )
 						itemAmmoIcon = gWR.GetAmmoIconFromWeapon( m_PickupHistory[i].iId );
 					}
 					else
-#endif // HL2MP
 					{
 						itemIcon = gWR.GetAmmoIconFromWeapon( m_PickupHistory[i].iId );
 						itemAmmoIcon = NULL;
 					}
-
-#ifdef CSTRIKE_DLL
-					// show grenades as the weapon icon
-					if ( pWpnInfo && pWpnInfo->iFlags & ITEM_FLAG_EXHAUSTIBLE )	
-					{
-						itemIcon = pWpnInfo->iconActive;
-						itemAmmoIcon = NULL;
-						bHalfHeight = false;
-					}
-#endif
 
 					iAmount = m_PickupHistory[i].iCount;
 				}
@@ -375,7 +345,7 @@ void CHudHistoryResource::Paint( void )
 					iAmount = 0;
 					bUseAmmoFullMsg = true;
 					// display as red
-					clr = gHUD.m_clrCaution;	
+					clr = GetHud().m_clrCaution;	
 					clr[3] = MIN( scale, 255 );
 				}
 				break;
@@ -389,7 +359,7 @@ void CHudHistoryResource::Paint( void )
 					if ( !pWeapon->HasAmmo() )
 					{
 						// if the weapon doesn't have ammo, display it as red
-						clr = gHUD.m_clrCaution;	
+						clr = GetHud().m_clrCaution;	
 						clr[3] = MIN( scale, 255 );
 					}
 
@@ -424,13 +394,11 @@ void CHudHistoryResource::Paint( void )
 			int ypos = tall - (m_flHistoryGap * (i + 1));
 			int xpos = wide - itemIcon->Width() - m_flIconInset;
 
-#ifndef HL2MP
 			// Adjust for a half-height icon
 			if ( bHalfHeight )
 			{
 				ypos += itemIcon->Height() / 2;
 			}
-#endif // HL2MP
 
 			itemIcon->DrawSelf( xpos, ypos, clr );
 

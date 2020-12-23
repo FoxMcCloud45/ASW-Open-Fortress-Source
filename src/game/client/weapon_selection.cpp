@@ -1,13 +1,9 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Weapon selection handling
 //
 // $NoKeywords: $
 //=============================================================================//
-
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * added check for OF_CLIENT_DLL define
-
 #include "cbase.h"
 #include "weapon_selection.h"
 #include "hud_macros.h"
@@ -62,10 +58,10 @@ HOOK_COMMAND( invprev, PrevWeapon );
 HOOK_COMMAND( lastinv, LastWeapon );
 
 // instance info
-CBaseHudWeaponSelection *CBaseHudWeaponSelection::s_pInstance = NULL;
+CBaseHudWeaponSelection *CBaseHudWeaponSelection::s_pInstance[MAX_SPLITSCREEN_PLAYERS];
 CBaseHudWeaponSelection *CBaseHudWeaponSelection::GetInstance()
 {
-	return s_pInstance;
+	return s_pInstance[GET_ACTIVE_SPLITSCREEN_SLOT()];
 }
 CBaseHudWeaponSelection *GetHudWeaponSelection()
 {
@@ -77,9 +73,11 @@ CBaseHudWeaponSelection *GetHudWeaponSelection()
 //-----------------------------------------------------------------------------
 CBaseHudWeaponSelection::CBaseHudWeaponSelection( const char *pElementName ) : CHudElement( pElementName )
 {
-	s_pInstance = this;
+	s_pInstance[GET_ACTIVE_SPLITSCREEN_SLOT()] = this;
 	
-	SetHiddenBits( HIDEHUD_WEAPONSELECTION | HIDEHUD_NEEDSUIT | HIDEHUD_PLAYERDEAD | HIDEHUD_INVEHICLE );
+
+		SetHiddenBits( HIDEHUD_WEAPONSELECTION | HIDEHUD_NEEDSUIT | HIDEHUD_PLAYERDEAD | HIDEHUD_INVEHICLE );
+
 }
 
 //-----------------------------------------------------------------------------
@@ -105,7 +103,6 @@ void CBaseHudWeaponSelection::Reset(void)
 	// Start hidden
 	m_bSelectionVisible = false;
 	m_flSelectionTime = gpGlobals->curtime;
-	gHUD.UnlockRenderGroup( gHUD.LookupRenderGroupIndexByName( "weapon_selection" ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -163,12 +160,12 @@ void CBaseHudWeaponSelection::ProcessInput()
 	if ( pPlayer->IsInVGuiInputMode() && !pPlayer->IsInViewModelVGuiInputMode() )
 	{
 		// If so, close weapon selection when they press fire
-		if ( gHUD.m_iKeyBits & IN_ATTACK )
+		if ( GetHud().m_iKeyBits & IN_ATTACK )
 		{
 			if ( HUDTYPE_PLUS != hud_fastswitch.GetInt() )
 			{
 				// Swallow the button
-				gHUD.m_iKeyBits &= ~IN_ATTACK;
+				GetHud().m_iKeyBits &= ~IN_ATTACK;
 				input->ClearInputButton( IN_ATTACK );
 			}
 
@@ -178,16 +175,16 @@ void CBaseHudWeaponSelection::ProcessInput()
 	}
 
 	// Has the player selected a weapon?
-	if ( gHUD.m_iKeyBits & (IN_ATTACK | IN_ATTACK2) )
+	if ( GetHud().m_iKeyBits & (IN_ATTACK | IN_ATTACK2) )
 	{
 		if ( IsWeaponSelectable() )
 		{
-#if !defined( TF_CLIENT_DLL ) && !defined( OF_CLIENT_DLL )
+
 			if ( HUDTYPE_PLUS != hud_fastswitch.GetInt() )
-#endif
+
 			{
 				// Swallow the button
-				gHUD.m_iKeyBits &= ~(IN_ATTACK | IN_ATTACK2);
+				GetHud().m_iKeyBits &= ~(IN_ATTACK | IN_ATTACK2);
 				input->ClearInputButton( IN_ATTACK );
 				input->ClearInputButton( IN_ATTACK2 );
 			}
@@ -212,7 +209,6 @@ bool CBaseHudWeaponSelection::IsInSelectionMode()
 void CBaseHudWeaponSelection::OpenSelection( void )
 {
 	m_bSelectionVisible = true;
-	gHUD.LockRenderGroup( gHUD.LookupRenderGroupIndexByName( "weapon_selection" ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -221,7 +217,6 @@ void CBaseHudWeaponSelection::OpenSelection( void )
 void CBaseHudWeaponSelection::HideSelection( void )
 {
 	m_bSelectionVisible = false;
-	gHUD.UnlockRenderGroup( gHUD.LookupRenderGroupIndexByName( "weapon_selection" ) );
 }
 
 //-----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -18,19 +18,8 @@
 // BOTPORT: Clean up relationship between team index and danger storage in nav areas
 enum { MAX_NAV_TEAMS = 2 };
 
-#ifdef STAGING_ONLY
-inline void DebuggerBreakOnNaN_StagingOnly( float val )
-{
-	if ( IS_NAN( val ) )
-		DebuggerBreak();
-}
-#else
-#define DebuggerBreakOnNaN_StagingOnly( _val )
-#endif
 
 class CFuncElevator;
-class CFuncNavPrerequisite;
-class CFuncNavCost;
 
 class CNavVectorNoEditAllocator
 {
@@ -313,7 +302,6 @@ public:
 	void MarkAsBlocked( int teamID, CBaseEntity *blocker, bool bGenerateEvent = true );	// An entity can force a nav area to be blocked
 	virtual void UpdateBlocked( bool force = false, int teamID = TEAM_ANY );		// Updates the (un)blocked status of the nav area (throttled)
 	virtual bool IsBlocked( int teamID, bool ignoreNavBlockers = false ) const;
-	void UnblockArea( int teamID = TEAM_ANY );					// clear blocked status for the given team(s)
 
 	void CheckFloor( CBaseEntity *ignore );						// Checks if there is a floor under the nav area, in case a breakable floor is gone
 
@@ -321,19 +309,6 @@ public:
 	void UpdateAvoidanceObstacles( void );
 	bool HasAvoidanceObstacle( float maxObstructionHeight = StepHeight ) const; // is there a large, immobile object obstructing this area
 	float GetAvoidanceObstacleHeight( void ) const; // returns the maximum height of the obstruction above the ground
-
-#ifdef NEXT_BOT
-	bool HasPrerequisite( CBaseCombatCharacter *actor = NULL ) const;							// return true if this area has a prerequisite that applies to the given actor
-	const CUtlVector< CHandle< CFuncNavPrerequisite > > &GetPrerequisiteVector( void ) const;	// return vector of prerequisites that must be met before this area can be traversed
-	void RemoveAllPrerequisites( void );
-	void AddPrerequisite( CFuncNavPrerequisite *prereq );
-#endif
-
-	void ClearAllNavCostEntities( void );							// clear set of func_nav_cost entities that affect this area
-	void AddFuncNavCostEntity( CFuncNavCost *cost );				// add the given func_nav_cost entity to the cost of this area
-	float ComputeFuncNavCost( CBaseCombatCharacter *who ) const;	// return the cost multiplier of this area's func_nav_cost entities for the given actor
-	bool HasFuncNavAvoid( void ) const;
-	bool HasFuncNavPrefer( void ) const;
 
 	void CheckWaterLevel( void );
 	bool IsUnderwater( void ) const		{ return m_isUnderwater; }
@@ -372,7 +347,6 @@ public:
 	int GetAdjacentCount( NavDirType dir ) const	{ return m_connect[ dir ].Count(); }	// return number of connected areas in given direction
 	CNavArea *GetAdjacentArea( NavDirType dir, int i ) const;	// return the i'th adjacent area in the given direction
 	CNavArea *GetRandomAdjacentArea( NavDirType dir ) const;
-	void CollectAdjacentAreas( CUtlVector< CNavArea * > *adjVector ) const;	// build a vector of all adjacent areas
 
 	const NavConnectVector *GetAdjacentAreas( NavDirType dir ) const	{ return &m_connect[dir]; }
 	bool IsConnected( const CNavArea *area, NavDirType dir ) const;	// return true if given area is connected in given direction
@@ -454,14 +428,14 @@ public:
 
 	static void ClearSearchLists( void );						// clears the open and closed lists for a new search
 
-	void SetTotalCost( float value )	{ DebuggerBreakOnNaN_StagingOnly( value ); Assert( value >= 0.0 && !IS_NAN(value) ); m_totalCost = value; }
-	float GetTotalCost( void ) const	{ DebuggerBreakOnNaN_StagingOnly( m_totalCost ); return m_totalCost; }
+	void SetTotalCost( float value )	{ Assert( value >= 0.0 && !IS_NAN(value) ); m_totalCost = value; }
+	float GetTotalCost( void ) const	{ return m_totalCost; }
 
-	void SetCostSoFar( float value )	{ DebuggerBreakOnNaN_StagingOnly( value ); Assert( value >= 0.0 && !IS_NAN(value) ); m_costSoFar = value; }
-	float GetCostSoFar( void ) const	{ DebuggerBreakOnNaN_StagingOnly( m_costSoFar ); return m_costSoFar; }
+	void SetCostSoFar( float value )	{ Assert( value >= 0.0 && !IS_NAN(value) ); m_costSoFar = value; }
+	float GetCostSoFar( void ) const	{ return m_costSoFar; }
 
-	void SetPathLengthSoFar( float value )	{ DebuggerBreakOnNaN_StagingOnly( value ); Assert( value >= 0.0 && !IS_NAN(value) ); m_pathLengthSoFar = value; }
-	float GetPathLengthSoFar( void ) const	{ DebuggerBreakOnNaN_StagingOnly( m_pathLengthSoFar ); return m_pathLengthSoFar; }
+	void SetPathLengthSoFar( float value )	{ Assert( value >= 0.0 && !IS_NAN(value) ); m_pathLengthSoFar = value; }
+	float GetPathLengthSoFar( void ) const	{ return m_pathLengthSoFar; }
 
 	//- editing -----------------------------------------------------------------------------------------
 	virtual void Draw( void ) const;							// draw area for debugging & editing
@@ -524,8 +498,8 @@ public:
 		}
 	};
 
-	virtual bool IsEntirelyVisible( const Vector &eye, const CBaseEntity *ignore = NULL ) const;				// return true if entire area is visible from given eyepoint (CPU intensive)
-	virtual bool IsPartiallyVisible( const Vector &eye, const CBaseEntity *ignore = NULL ) const;				// return true if any portion of the area is visible from given eyepoint (CPU intensive)
+	virtual bool IsEntirelyVisible( const Vector &eye, CBaseEntity *ignore = NULL ) const;				// return true if entire area is visible from given eyepoint (CPU intensive)
+	virtual bool IsPartiallyVisible( const Vector &eye, CBaseEntity *ignore = NULL ) const;				// return true if any portion of the area is visible from given eyepoint (CPU intensive)
 
 	virtual bool IsPotentiallyVisible( const CNavArea *area ) const;		// return true if given area is potentially visible from somewhere in this area (very fast)
 	virtual bool IsPotentiallyVisibleToTeam( int team ) const;				// return true if any portion of this area is visible to anyone on the given team (very fast)
@@ -648,10 +622,12 @@ public:
 	}
 
 
+protected:
+	void UnblockArea( void );
+
 private:
 	friend class CNavMesh;
 	friend class CNavLadder;
-	friend class CCSNavArea;									// allow CS load code to complete replace our default load behavior
 
 	static bool m_isReset;										// if true, don't bother cleaning up in destructor since everything is going away
 
@@ -733,10 +709,6 @@ private:
 
 	void CalcDebugID();
 
-#ifdef NEXT_BOT
-	CUtlVector< CHandle< CFuncNavPrerequisite > > m_prerequisiteVector;		// list of prerequisites that must be met before this area can be traversed
-#endif
-
 	CNavArea *m_prevHash, *m_nextHash;							// for hash table in CNavMesh
 
 	void ConnectElevators( void );								// find elevator connections between areas
@@ -763,8 +735,6 @@ private:
 
 	uint32 m_nVisTestCounter;
 	static uint32 s_nCurrVisTestCounter;
-
-	CUtlVector< CHandle< CFuncNavCost > > m_funcNavCostVector;	// active, overlapping cost entities
 };
 
 typedef CUtlVector< CNavArea * > NavAreaVector;
@@ -776,36 +746,6 @@ extern NavAreaVector TheNavAreas;
 //
 // Inlines
 //
-
-#ifdef NEXT_BOT
-
-//--------------------------------------------------------------------------------------------------------------
-inline bool CNavArea::HasPrerequisite( CBaseCombatCharacter *actor ) const
-{
-	return m_prerequisiteVector.Count() > 0;
-}
-
-//--------------------------------------------------------------------------------------------------------------
-inline const CUtlVector< CHandle< CFuncNavPrerequisite > > &CNavArea::GetPrerequisiteVector( void ) const
-{
-	return m_prerequisiteVector;
-}
-
-//--------------------------------------------------------------------------------------------------------------
-inline void CNavArea::RemoveAllPrerequisites( void )
-{
-	m_prerequisiteVector.RemoveAll();
-}
-
-//--------------------------------------------------------------------------------------------------------------
-inline void CNavArea::AddPrerequisite( CFuncNavPrerequisite *prereq )
-{
-	if ( m_prerequisiteVector.Find( prereq ) == m_prerequisiteVector.InvalidIndex() )
-	{
-		m_prerequisiteVector.AddToTail( prereq );
-	}
-}
-#endif
 
 //--------------------------------------------------------------------------------------------------------------
 inline float CNavArea::GetDangerDecayRate( void ) const
@@ -823,9 +763,14 @@ inline bool CNavArea::IsDegenerate( void ) const
 //--------------------------------------------------------------------------------------------------------------
 inline CNavArea *CNavArea::GetAdjacentArea( NavDirType dir, int i ) const
 {
-	if ( ( i < 0 ) || ( i >= m_connect[dir].Count() ) )
-		return NULL;
-	return m_connect[dir][i].area;
+	for( int iter = 0; iter < m_connect[dir].Count(); ++iter )
+	{
+		if (i == 0)
+			return m_connect[dir][iter].area;
+		--i;
+	}
+
+	return NULL;
 }
 
 //--------------------------------------------------------------------------------------------------------------

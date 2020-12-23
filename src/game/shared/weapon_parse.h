@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Weapon data file parsing, shared by game & client dlls.
 //
@@ -38,7 +38,7 @@ typedef enum {
 	SPECIAL2,
 	SPECIAL3,
 	TAUNT,
-	DEPLOY,
+	FAST_RELOAD,
 
 	// Add new shoot sound types here
 
@@ -87,8 +87,8 @@ public:
 	char					szAnimationPrefix[MAX_WEAPON_PREFIX];	// Prefix of the animations that should be used by the player carrying this weapon
 	int						iSlot;									// inventory slot.
 	int						iPosition;								// position in the inventory slot.
-	int						iMaxClip1;								// max primary clip size (-1 if no clip)
-	int						iMaxClip2;								// max secondary clip size (-1 if no clip)
+	int						iMaxClip1;								// MAX primary clip size (-1 if no clip)
+	int						iMaxClip2;								// MAX secondary clip size (-1 if no clip)
 	int						iDefaultClip1;							// amount of primary ammo in the gun when it's created
 	int						iDefaultClip2;							// amount of secondary ammo in the gun when it's created
 	int						iWeight;								// this value used to determine this weapon's importance in autoselection.
@@ -98,6 +98,7 @@ public:
 	int						iFlags;									// miscellaneous weapon flags
 	char					szAmmo1[MAX_WEAPON_AMMO_NAME];			// "primary" ammo type
 	char					szAmmo2[MAX_WEAPON_AMMO_NAME];			// "secondary" ammo type
+	char					szAIAddOn[MAX_WEAPON_STRING];			// addon that this weapon can become
 
 	// Sound blocks
 	char					aShootSounds[NUM_SHOOT_SOUND_TYPES][MAX_WEAPON_STRING];	
@@ -151,7 +152,7 @@ void PrecacheFileWeaponInfoDatabase( IFileSystem *filesystem, const unsigned cha
 //
 // (This should be moved into a more appropriate place).
 //
-KeyValues* ReadEncryptedKVFile( IFileSystem *filesystem, const char *szFilenameWithoutExtension, const unsigned char *pICEKey, bool bForceReadEncryptedFile = false );
+KeyValues* ReadEncryptedKVFile( IFileSystem *filesystem, const char *szFilenameWithoutExtension, const unsigned char *pICEKey );
 
 
 // Each game implements this. It can return a derived class and override Parse() if it wants.

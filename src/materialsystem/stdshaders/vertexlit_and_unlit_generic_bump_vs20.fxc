@@ -1,41 +1,60 @@
-//======= Copyright (c) 1996-2009, Valve Corporation, All rights reserved. ======
-//  STATIC: "HALFLAMBERT"				"0..1"
-//  STATIC: "USE_WITH_2B"				"0..1"
-//  STATIC: "DECAL"						"0..1" [vs30]
-//  STATIC: "FLASHLIGHT"				"0..1" [XBOX]
-//  STATIC: "USE_STATIC_CONTROL_FLOW"	"0..1" [vs20]
+//========== Copyright (c) Valve Corporation, All rights reserved. ==========//
 
-//  DYNAMIC: "COMPRESSED_VERTS"			"0..1"
-//	DYNAMIC: "DOWATERFOG"				"0..1"
-//	DYNAMIC: "SKINNING"					"0..1"
-//  DYNAMIC: "MORPHING"					"0..1" [vs30]
-//  DYNAMIC: "NUM_LIGHTS"				"0..2" [vs20]
+// STATIC: "HALFLAMBERT"			"0..1"
+// STATIC: "USE_WITH_2B"			"0..1"
+// STATIC: "DECAL"					"0..1" [vs30]
+// STATIC: "FLASHLIGHT"				"0..1" [XBOX]
+// STATIC: "NORMALIZEEYEVEC"		"0..1"
+// STATIC: "WORLD_NORMAL"			"0..0" [vs20] [PC]
+// STATIC: "WORLD_NORMAL"			"0..1" [vs30] [PC]
+// STATIC: "WORLD_NORMAL"			"0..0" [XBOX]
+// STATIC: "STATICLIGHT3"			"0..0" // MAINTOL4DMERGEFIXME
 
-// If using static control flow on Direct3D, we should use the NUM_LIGHTS=0 combo
-//  SKIP: $USE_STATIC_CONTROL_FLOW && ( $NUM_LIGHTS > 0 ) [vs20]
+// DYNAMIC: "COMPRESSED_VERTS"		"0..1"
+// DYNAMIC: "SKINNING"				"0..1"
 
+// DYNAMIC: "MORPHING"				"0..1" [vs30] [ = pShaderAPI->IsHWMorphingEnabled() ]
+// DYNAMIC: "TESSELLATION"			"0..2" [vs30] [PC]
+// DYNAMIC: "TESSELLATION"			"0..0" [XBOX]
+// DYNAMIC: "TESSELLATION"			"0..0" [vs20] [PC]
+
+// When tessellating, we don't have room in the super-prim vertices for more colors, tex coords or objects space positions
+// SKIP: ( $STATICLIGHT3 || $MORPHING || $SKINNING || $COMPRESSED_VERTS) && $TESSELLATION
+
+#include "common_fog_vs_supportsvertexfog_fxc.h"
 #include "common_vs_fxc.h"
 
 static const bool g_bSkinning		= SKINNING ? true : false;
 static const int g_FogType			= DOWATERFOG;
 
-const float4 cBaseTexCoordTransform[2]	 :  register( SHADER_SPECIFIC_CONST_0 );	// 0 & 1
-const float4 cDetailTexCoordTransform[2] :  register( SHADER_SPECIFIC_CONST_4 );	// 4 & 5
-const float4x4 g_FlashlightWorldToTexture :  register( SHADER_SPECIFIC_CONST_6 );	// 6, 7, 8, 9
+const float4 cBaseTexCoordTransform[2]		:  register( SHADER_SPECIFIC_CONST_0 );	// 0 & 1
+
+const float4 g_vEyeVector					:  register( SHADER_SPECIFIC_CONST_2 );
+
+const float4 cDetailTexCoordTransform[2]	:  register( SHADER_SPECIFIC_CONST_4 );	// 4 & 5
+const float4x4 g_FlashlightWorldToTexture	:  register( SHADER_SPECIFIC_CONST_6 );	// 6, 7, 8, 9
 
 #ifdef SHADER_MODEL_VS_3_0
 // NOTE: cMorphTargetTextureDim.xy = target dimensions,
 //		 cMorphTargetTextureDim.z = 4tuples/morph
-const float3 cMorphTargetTextureDim			: register( SHADER_SPECIFIC_CONST_10 );
-const float4 cMorphSubrect					: register( SHADER_SPECIFIC_CONST_11 );
+const float3 cMorphTargetTextureDim		  	: register( SHADER_SPECIFIC_CONST_10 );
+const float4 cMorphSubrect				  	: register( SHADER_SPECIFIC_CONST_11 );
 
-sampler2D morphSampler : register( D3DVERTEXTEXTURESAMPLER0, s0 );
+sampler2D morphSampler					  	: register( D3DVERTEXTEXTURESAMPLER0, s0 );
 #endif
 
 
-//-----------------------------------------------------------------------------
-// Input vertex format
-//-----------------------------------------------------------------------------
+
+#if TESSELLATION
+
+#include "tessellation_vs_fxc.h"
+const float4 g_SubDControls				  : register( SHADER_SPECIFIC_CONST_3 );
+sampler2D BezierSampler					  : register( s1 );
+sampler2D DispSampler					  : register( s2 );
+// VS_INPUT defined in header
+
+#else // no TESSELLATION
+
 struct VS_INPUT
 {
 	// This is all of the stuff that we ever use.
@@ -44,7 +63,11 @@ struct VS_INPUT
 	float4 vBoneIndices		: BLENDINDICES;
 	float4 vNormal			: NORMAL;
 	float4 vColor			: COLOR0;
-	float3 vSpecular		: COLOR1;
+	float3 vStaticLight		: COLOR1;
+	#if STATICLIGHT3
+		float3 vStaticLight2		: COLOR2;
+		float3 vStaticLight3		: COLOR3;
+	#endif
 	// make these float2's and stick the [n n 0 1] in the dot math.
 	float4 vTexCoord0		: TEXCOORD0;
 	float4 vTexCoord1		: TEXCOORD1;
@@ -53,14 +76,15 @@ struct VS_INPUT
 	float3 vTangentS		: TANGENT;
 	float3 vTangentT		: BINORMAL;
 	float4 vUserData		: TANGENT;
-
 	// Position and normal/tangent deltas
 	float3 vPosFlex			: POSITION1;
 	float3 vNormalFlex		: NORMAL1;
-#ifdef SHADER_MODEL_VS_3_0
-	float vVertexID			: POSITION2;
-#endif
+	#ifdef SHADER_MODEL_VS_3_0
+		float vVertexID			: POSITION2;
+	#endif
 };
+
+#endif // TESSELLATION
 
 
 //-----------------------------------------------------------------------------
@@ -69,28 +93,31 @@ struct VS_INPUT
 struct VS_OUTPUT
 {
 	// Stuff that isn't seen by the pixel shader
-	float4 projPos												: POSITION;	
-#if !defined( _X360 )
-	float  fog													: FOG;
+	float4 projPos										: POSITION;	
+#if !defined( _X360 ) && !defined( SHADER_MODEL_VS_3_0 )
+	float  fog											: FOG;
 #endif
-	// Stuff that is seen by the pixel shader
 
-	float4 baseTexCoord2_tangentSpaceVertToEyeVectorXY			: TEXCOORD0;
-	float3 lightAtten											: TEXCOORD1;
-	float4 worldVertToEyeVectorXYZ_tangentSpaceVertToEyeVectorZ	: TEXCOORD2;
-	float3 vWorldNormal											: TEXCOORD3;	// World-space normal
-	float4 vWorldTangent										: TEXCOORD4;
-#if	USE_WITH_2B
-	float4 vProjPos												: TEXCOORD5;
-#else
-	float3 vWorldBinormal										: TEXCOORD5;
-#endif
-	float4 worldPos_projPosZ									: TEXCOORD6;
-	float3 detailTexCoord_atten3								: TEXCOORD7;
-	float4 fogFactorW											: COLOR1;
+	// Stuff that is seen by the pixel shader
+	float4 baseTexCoord2_light0e01						: TEXCOORD0;
+	#if STATICLIGHT3
+		float4 light1e012_light0e2						: TEXCOORD1;
+	#else
+		float3 lightAtten								: TEXCOORD1;
+	#endif
+	float4 worldVertToEyeVectorXYZ_light2e0				: TEXCOORD2;
+	float4 vWorldNormal_light2e1						: TEXCOORD3;
+	float4 vWorldTangent								: TEXCOORD4;
+	#if USE_WITH_2B
+		float4 vProjPos									: TEXCOORD5;
+	#else
+		float3 vWorldBinormal							: TEXCOORD5;
+	#endif
+	float4 worldPos_projPosZ							: TEXCOORD6;
+	float4 detailTexCoord_atten3_or_light2e2_fogFactorW	: TEXCOORD7;
 
 #if defined( _X360 ) && FLASHLIGHT
-	float4 flashlightSpacePos									: TEXCOORD8;
+	float4 flashlightSpacePos							: TEXCOORD8;
 #endif
 };
 
@@ -102,97 +129,141 @@ VS_OUTPUT main( const VS_INPUT v )
 {
 	VS_OUTPUT o = ( VS_OUTPUT )0;
 
-	float4 vPosition = v.vPos;
-	float3 vNormal;
-	float4 vTangent;
-	DecompressVertex_NormalTangent( v.vNormal, v.vUserData, vNormal, vTangent );
+	float4 vPosition, vTangent;
+	float3 vNormal, worldPos, worldNormal, worldTangentS, worldTangentT;
 
-#if !defined( SHADER_MODEL_VS_3_0 ) || !MORPHING
-	ApplyMorph( v.vPosFlex, v.vNormalFlex, vPosition.xyz, vNormal, vTangent.xyz );
-#else
-	ApplyMorph( morphSampler, cMorphTargetTextureDim, cMorphSubrect, 
-		v.vVertexID, v.vTexCoord2, vPosition.xyz, vNormal, vTangent.xyz );
-#endif
+	#if ( TESSELLATION )
+	{
+		float flDummyWrinkle;
+		EvaluateSubdivisionSurface( v, g_SubDControls.x, g_SubDControls.y, g_SubDControls.z, BezierSampler, DispSampler,
+								    worldNormal, worldPos, worldTangentS, worldTangentT, vTangent.w,
+									flDummyWrinkle, o.baseTexCoord2_light0e01.xy, o.detailTexCoord_atten3_or_light2e2_fogFactorW.xy );
+	}
+	#else // no TESSELLATION
+	{
+		vPosition = v.vPos;
 
-	// Perform skinning
-	float3 worldNormal, worldPos, worldTangentS, worldTangentT;
-	SkinPositionNormalAndTangentSpace( g_bSkinning, vPosition, vNormal, vTangent,
-		v.vBoneWeights, v.vBoneIndices, worldPos,
-		worldNormal, worldTangentS, worldTangentT );
+		DecompressVertex_NormalTangent( v.vNormal, v.vUserData, vNormal, vTangent );
 
-	// Always normalize since flex path is controlled by runtime
-	// constant not a shader combo and will always generate the normalization
-	worldNormal   = normalize( worldNormal );
-	worldTangentS = normalize( worldTangentS );
-	worldTangentT = normalize( worldTangentT );
+		#if ( !defined( SHADER_MODEL_VS_3_0 ) || !MORPHING )
+		{
+			ApplyMorph( v.vPosFlex, v.vNormalFlex, vPosition.xyz, vNormal, vTangent.xyz );
+		}
+		#else
+		{
+			ApplyMorph( morphSampler, cMorphTargetTextureDim, cMorphSubrect, 
+				v.vVertexID, v.vTexCoord2, vPosition.xyz, vNormal, vTangent.xyz );
+		}
+		#endif
 
-#if defined( SHADER_MODEL_VS_3_0 ) && MORPHING && DECAL
-	// Avoid z precision errors
-	worldPos += worldNormal * 0.05f * v.vTexCoord2.z;
-#endif
+		// Perform skinning
+		SkinPositionNormalAndTangentSpace( g_bSkinning, vPosition, vNormal, vTangent,
+			v.vBoneWeights, v.vBoneIndices, worldPos, worldNormal, worldTangentS, worldTangentT );
 
-	o.vWorldNormal.xyz = worldNormal.xyz;
-	o.vWorldTangent = float4( worldTangentS.xyz, vTangent.w );	 // Propagate binormal sign in world tangent.w
+		// Always normalize since flex path is controlled by runtime
+		// constant not a shader combo and will always generate the normalization
+		worldNormal   = normalize( worldNormal );
+		worldTangentS = normalize( worldTangentS );
+		worldTangentT = normalize( worldTangentT );
+
+		#if ( defined( SHADER_MODEL_VS_3_0 ) && MORPHING && DECAL )
+		{
+			// Avoid z precision errors
+			worldPos += worldNormal * 0.05f * v.vTexCoord2.z;
+		}
+		#endif
+
+		#if ( STATICLIGHT3 )
+		{
+			// Adjust lighting data
+			float3 cStaticLight1 = DoLighting( worldPos, worldNormal, v.vStaticLight,  true, false, false );
+			float3 cStaticLight2 = DoLighting( worldPos, worldNormal, v.vStaticLight2, true, false, false );
+			float3 cStaticLight3 = DoLighting( worldPos, worldNormal, v.vStaticLight3, true, false, false );
+
+			// Pack 3-streams of lighting data
+			o.baseTexCoord2_light0e01.zw = cStaticLight1.xy;
+			o.light1e012_light0e2.xyz = cStaticLight2.xyz;
+			o.light1e012_light0e2.w = cStaticLight1.z;
+			o.worldVertToEyeVectorXYZ_light2e0.w = cStaticLight3.x;
+			o.vWorldNormal_light2e1.w = cStaticLight3.y;
+			o.detailTexCoord_atten3_or_light2e2_fogFactorW.z = cStaticLight3.z;
+		}
+		#endif
+
+		// Base texture coordinate transform
+		o.baseTexCoord2_light0e01.x = dot( v.vTexCoord0, cBaseTexCoordTransform[0] );
+		o.baseTexCoord2_light0e01.y = dot( v.vTexCoord0, cBaseTexCoordTransform[1] );
+
+		// Detail texture coordinate transform
+		o.detailTexCoord_atten3_or_light2e2_fogFactorW.x = dot( v.vTexCoord0, cDetailTexCoordTransform[0] );
+		o.detailTexCoord_atten3_or_light2e2_fogFactorW.y = dot( v.vTexCoord0, cDetailTexCoordTransform[1] );
+	}
+	#endif // TESSELLATION
 
 	// Transform into projection space
-	float4 vProjPos = mul( float4( worldPos, 1 ), cViewProj );
-	o.projPos = vProjPos;
-	vProjPos.z = dot( float4( worldPos, 1 ), cViewProjZ );
+	o.projPos = mul( float4( worldPos, 1 ), cViewProj );
 
-#if USE_WITH_2B
-	o.vProjPos = vProjPos;
-#else
-	o.vWorldBinormal.xyz = worldTangentT.xyz;
-#endif
+	o.vWorldNormal_light2e1.xyz = worldNormal.xyz;
 
-	o.fogFactorW = CalcFog( worldPos, vProjPos, g_FogType );
-#if !defined( _X360 )
-	o.fog = o.fogFactorW;
-#endif
+	o.vWorldTangent = float4( worldTangentS.xyz, vTangent.w );	 // Propagate binormal sign in world tangent.w
 
- 	// Needed for water fog alpha and diffuse lighting
-	// FIXME: we shouldn't have to compute this all the time.
-	o.worldPos_projPosZ = float4( worldPos, vProjPos.z );
+	#if ( USE_WITH_2B )
+	{
+		o.vProjPos = o.projPos;
+	}
+	#else
+	{
+		o.vWorldBinormal.xyz = worldTangentT.xyz;
+	}
+	#endif
+
+	#if ( STATICLIGHT3 == 0 )
+	{
+		// Scalar light attenuation
+		o.lightAtten.x = GetVertexAttenForLight( worldPos, 0 );
+		o.lightAtten.y = GetVertexAttenForLight( worldPos, 1 );
+		o.lightAtten.z = GetVertexAttenForLight( worldPos, 2 );
+		o.detailTexCoord_atten3_or_light2e2_fogFactorW.z = GetVertexAttenForLight( worldPos, 3 );
+	}
+	#endif
+
+	// Needed for water fog alpha and diffuse lighting
+	o.worldPos_projPosZ = float4( worldPos, o.projPos.z );
+
+	#if ( WORLD_NORMAL )
+	{
+		o.worldPos_projPosZ.w = dot( g_vEyeVector, worldPos.xyz - cEyePos.xyz );	// Linear depth
+	}
+	#endif
 
 	// Needed for cubemapping + parallax mapping
-	// FIXME: We shouldn't have to compute this all the time.
-	//o.worldVertToEyeVectorXYZ_tangentSpaceVertToEyeVectorZ.xyz = VSHADER_VECT_SCALE * (cEyePos - worldPos);
-	o.worldVertToEyeVectorXYZ_tangentSpaceVertToEyeVectorZ.xyz = normalize( cEyePos.xyz - worldPos.xyz );
-
-#if defined( SHADER_MODEL_VS_2_0 ) && ( !USE_STATIC_CONTROL_FLOW )
-	o.lightAtten.xyz = float3(0,0,0);
-	o.detailTexCoord_atten3.z = 0.0f;
-	#if ( NUM_LIGHTS > 0 )
-		o.lightAtten.x = GetVertexAttenForLight( worldPos, 0, false );
+	#if ( NORMALIZEEYEVEC == 1 )
+	{
+		o.worldVertToEyeVectorXYZ_light2e0.xyz = normalize( cEyePos.xyz - worldPos.xyz );
+	}
+	#else
+	{
+		o.worldVertToEyeVectorXYZ_light2e0.xyz = cEyePos.xyz - worldPos.xyz;
+	}
 	#endif
-	#if ( NUM_LIGHTS > 1 )
-		o.lightAtten.y = GetVertexAttenForLight( worldPos, 1, false );
-	#endif
-	#if ( NUM_LIGHTS > 2 )
-		o.lightAtten.z = GetVertexAttenForLight( worldPos, 2, false );
-	#endif
-	#if ( NUM_LIGHTS > 3 )
-		o.detailTexCoord_atten3.z = GetVertexAttenForLight( worldPos, 3, false );
-	#endif
-#else
-	// Scalar light attenuation
-	o.lightAtten.x = GetVertexAttenForLight( worldPos, 0, true );
-	o.lightAtten.y = GetVertexAttenForLight( worldPos, 1, true );
-	o.lightAtten.z = GetVertexAttenForLight( worldPos, 2, true );
-	o.detailTexCoord_atten3.z = GetVertexAttenForLight( worldPos, 3, true );
-#endif
 
-	// Base texture coordinate transform
-	o.baseTexCoord2_tangentSpaceVertToEyeVectorXY.x = dot( v.vTexCoord0, cBaseTexCoordTransform[0] );
-	o.baseTexCoord2_tangentSpaceVertToEyeVectorXY.y = dot( v.vTexCoord0, cBaseTexCoordTransform[1] );
+	#if ( HARDWAREFOGBLEND )
+	{
+		o.fog = CalcFixedFunctionFog( worldPos, g_FogType );
+	}
+	#endif
+	#if ( !DOPIXELFOG && !HARDWAREFOGBLEND )
+	{
+		o.detailTexCoord_atten3_or_light2e2_fogFactorW.w = CalcNonFixedFunctionFog( worldPos, g_FogType );
+	}
+	#endif
+	
+	#if ( defined( _X360 ) && FLASHLIGHT )
+	{
+		o.flashlightSpacePos = mul( float4( worldPos, 1.0f ), g_FlashlightWorldToTexture );
+	}
+	#endif
 
-	// Detail texture coordinate transform
-	o.detailTexCoord_atten3.x = dot( v.vTexCoord0, cDetailTexCoordTransform[0] );
-	o.detailTexCoord_atten3.y = dot( v.vTexCoord0, cDetailTexCoordTransform[1] );
-
-#if defined( _X360 ) && FLASHLIGHT
-	o.flashlightSpacePos = mul( float4( worldPos, 1.0f ), g_FlashlightWorldToTexture );
-#endif
 
 	return o;
 }

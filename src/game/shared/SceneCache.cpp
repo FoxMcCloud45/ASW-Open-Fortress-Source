@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//====== Copyright © 1996-2007, Valve Corporation, All rights reserved. =======
 //
 // Purpose: 
 //
@@ -8,6 +8,10 @@
 #include "SceneCache.h"
 #include "choreoscene.h"
 #include "choreoevent.h"
+
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
 
 extern ISoundEmitterSystemBase *soundemitterbase;
 CChoreoScene *BlockingLoadScene( const char *filename );
@@ -59,7 +63,7 @@ void CSceneCache::Restore( CUtlBuffer& buf  )
 	for ( int i = 0; i < c; ++i )
 	{
 		char soundname[ 512 ];
-		buf.GetString( soundname );
+		buf.GetString( soundname, sizeof( soundname ) );
 
 		int idx = soundemitterbase->GetSoundIndex( soundname );
 		if ( idx != -1 )

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2007, Valve Corporation, All rights reserved. ======//
 //
 // Run procedural glint generation inner loop in pixel shader
 //
@@ -7,11 +7,15 @@
 //===========================================================================//
 
 #include "BaseVSShader.h"
-#include "shaderlib/cshader.h"
+#include "shaderlib/CShader.h"
 
 #include "eyeglint_vs20.inc"
 #include "eyeglint_ps20.inc"
 #include "eyeglint_ps20b.inc"
+
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
 
 DEFINE_FALLBACK_SHADER( EyeGlint, EyeGlint_dx9 )
 BEGIN_VS_SHADER( EyeGlint_dx9, "Help for EyeGlint" )
@@ -25,10 +29,6 @@ SHADER_INIT
 
 SHADER_FALLBACK
 {
-	if ( g_pHardwareConfig->GetDXSupportLevel() < 90 )
-	{
-		return "Wireframe";
-	}
 	return 0;
 }
 
@@ -46,7 +46,7 @@ SHADER_DRAW
 
 		pShaderShadow->EnableCulling( false );
 
-		pShaderShadow->EnableSRGBWrite( false ); // linear texture
+		pShaderShadow->EnableSRGBWrite( true );
 
 		DECLARE_STATIC_VERTEX_SHADER( eyeglint_vs20 );
 		SET_STATIC_VERTEX_SHADER( eyeglint_vs20 );

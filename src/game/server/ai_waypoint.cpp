@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:
 //
@@ -43,7 +43,7 @@ END_DATADESC()
 
 AI_Waypoint_t::AI_Waypoint_t()
 {
-	memset( static_cast<void*>(this), 0, sizeof(*this) );
+	memset( this, 0, sizeof(*this) );
 	vecLocation	= vec3_invalid;
 	iNodeID		= NO_NODE;
 	flPathDistGoal = -1;
@@ -53,7 +53,7 @@ AI_Waypoint_t::AI_Waypoint_t()
 
 AI_Waypoint_t::AI_Waypoint_t( const Vector &initPosition, float initYaw, Navigation_t initNavType, int initWaypointFlags, int initNodeID )
 {
-	memset( static_cast<void*>(this), 0, sizeof(*this) );
+	memset( this, 0, sizeof(*this) );
 
 	// A Route of length one to the endpoint
 	vecLocation	= initPosition;

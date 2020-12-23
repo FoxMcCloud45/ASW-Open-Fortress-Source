@@ -19,7 +19,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
+// extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 
 // OFSTATUS: INCOMPLETE
@@ -61,6 +61,11 @@ void ClientActive( edict_t *pEdict, bool bLoadGame )
 	FinishClientPutInServer( pPlayer );
 }
 
+void ClientFullyConnect( edict_t *pEntity )
+{
+
+}
+
 // OFSTATUS: COMPLETE
 // Returns the descriptive name of this .dll.  E.g., Half-Life, or Team Fortress 2
 const char *GetGameDescription()
@@ -76,11 +81,14 @@ const char *GetGameDescription()
 CBaseEntity* FindEntity( edict_t *pEdict, char *classname )
 {
 	// If no name was given set bits based on the picked
-	if ( FStrEq( classname, "" ) )  
+	if (FStrEq(classname,"")) 
 	{
-		return ( FindPickerEntityClass( static_cast<CBasePlayer*>( GetContainingEntity( pEdict ) ), classname ) );
+		CBasePlayer *pPlayer = static_cast<CBasePlayer*>(GetContainingEntity(pEdict));
+		if ( pPlayer )
+		{
+			return pPlayer->FindPickerEntityClass( classname );
+		}
 	}
-	
 	return NULL;
 }
 

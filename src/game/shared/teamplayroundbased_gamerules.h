@@ -1,11 +1,8 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//====== Copyright © 1996-2006, Valve Corporation, All rights reserved. =======
 //
 // Purpose: Teamplay game rules that manage a round based structure for you
 //
 //=============================================================================
-// Open Fortress Modifications (CC-BY-NC-CA)
-// * added check for OF_DLL and OF_CLIENT_DLL defines
-// * Replace OVERRIDE macro with override, as defining override to nothing is prettier.
 
 #ifndef TEAMPLAYROUNDBASED_GAMERULES_H
 #define TEAMPLAYROUNDBASED_GAMERULES_H
@@ -15,7 +12,6 @@
 
 #include "teamplay_gamerules.h"
 #include "teamplay_round_timer.h"
-#include "GameEventListener.h"
 
 #ifdef GAME_DLL
 #include "team_control_point.h"
@@ -26,17 +22,12 @@
 	extern ConVar mp_bonusroundtime;
 	extern ConVar mp_restartround;
 	extern ConVar mp_winlimit;
-	extern ConVar mp_maxrounds;
 	extern ConVar mp_stalemate_timelimit;
 	extern ConVar mp_stalemate_enable;
 #else
 	#define CTeamplayRoundBasedRules C_TeamplayRoundBasedRules
 	#define CTeamplayRoundBasedRulesProxy C_TeamplayRoundBasedRulesProxy
 #endif
-
-extern ConVar	tf_arena_use_queue;
-extern ConVar	mp_stalemate_meleeonly;
-extern ConVar	mp_forceautoteam;
 
 class CTeamplayRoundBasedRules;
 
@@ -73,12 +64,6 @@ enum gamerules_roundstate_t
 	//Game is over, showing the scoreboard etc
 	GR_STATE_GAME_OVER,
 
-	//Game is in a bonus state, transitioned to after a round ends
-	GR_STATE_BONUS,
-
-	//Game is awaiting the next wave/round of a multi round experience
-	GR_STATE_BETWEEN_RNDS,
-
 	GR_NUM_ROUND_STATES
 };
 
@@ -91,12 +76,8 @@ enum {
 	WINREASON_STALEMATE,
 	WINREASON_TIMELIMIT,
 	WINREASON_WINLIMIT,
-	WINREASON_WINDIFFLIMIT,
-#if defined(TF_CLIENT_DLL) || defined(TF_DLL) || defined ( OF_CLIENT_DLL ) || defined ( OF_DLL )
-	WINREASON_RD_REACTOR_CAPTURED,
-	WINREASON_RD_CORES_COLLECTED,
-	WINREASON_RD_REACTOR_RETURNED,
-#endif
+	WINREASON_HUNTED_DEAD,
+	WINREASON_HUNTED_ESCAPED,
 };
 
 enum stalemate_reasons_t
@@ -107,25 +88,6 @@ enum stalemate_reasons_t
 
 	NUM_STALEMATE_REASONS,
 };
-
-
-#if defined(TF_CLIENT_DLL) || defined(TF_DLL)
-
-/// Info about a player in a PVE game or any other mode that we
-/// might eventually decide to use the lobby system for.
-struct LobbyPlayerInfo_t
-{
-	int m_nEntNum; //< Index of player (1...MAX_PLAYERS), or 0 if the guy is in the lobby but not yet known to us
-	CUtlString m_sPlayerName; //< Player display name
-	CSteamID m_steamID; //< Steam ID of the player
-	int m_iTeam; //< Team selection.
-	bool m_bInLobby; //< Is this guy in the lobby?
-	bool m_bConnected; //< Is this a bot?
-	bool m_bBot; //< Is this a bot?
-	bool m_bSquadSurplus; //< Did he present a voucher to get surplus for his squad
-};
-
-#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Per-state data
@@ -166,7 +128,7 @@ public:
 //-----------------------------------------------------------------------------
 // Purpose: Teamplay game rules that manage a round based structure for you
 //-----------------------------------------------------------------------------
-class CTeamplayRoundBasedRules : public CTeamplayRules, public CGameEventListener
+class CTeamplayRoundBasedRules : public CTeamplayRules
 {
 	DECLARE_CLASS( CTeamplayRoundBasedRules, CTeamplayRules );
 public:
@@ -176,12 +138,10 @@ public:
 	DECLARE_CLIENTCLASS_NOBASE(); // This makes datatables able to access our private vars.
 
 	void SetRoundState( int iRoundState );
+	float m_flLastRoundStateChangeTime;
 #else
 	DECLARE_SERVERCLASS_NOBASE(); // This makes datatables able to access our private vars.
 #endif
-
-	float GetLastRoundStateChangeTime( void ) const { return m_flLastRoundStateChangeTime; }
-	float m_flLastRoundStateChangeTime;
 
 	// Data accessors
 	inline gamerules_roundstate_t State_Get( void ) { return m_iRoundState; }
@@ -192,10 +152,8 @@ public:
 
 	virtual float GetNextRespawnWave( int iTeam, CBasePlayer *pPlayer );
 	virtual bool HasPassedMinRespawnTime( CBasePlayer *pPlayer );
-	virtual void	LevelInitPostEntity( void );
-	virtual float	GetRespawnTimeScalar( int iTeam );
-	virtual float	GetRespawnWaveMaxLength( int iTeam, bool bScaleWithNumPlayers = true );
-	virtual bool	ShouldRespawnQuickly( CBasePlayer *pPlayer ) { return false; }
+	float	GetRespawnTimeScalar( int iTeam );
+	float	GetRespawnWaveMaxLength( int iTeam, bool bScaleWithNumPlayers = true );
 	float	GetMinTimeWhenPlayerMaySpawn( CBasePlayer *pPlayer );
 
 	// Return false if players aren't allowed to cap points at this time (i.e. in WaitingForPlayers)
@@ -215,9 +173,8 @@ public:
 
 	bool		SwitchedTeamsThisRound( void ) { return m_bSwitchedTeamsThisRound; }
 
-	virtual bool ShouldBalanceTeams( void );
+	bool		ShouldBalanceTeams( void );
 	bool		IsInTournamentMode( void );
-	bool		IsInHighlanderMode( void );
 	bool		IsInPreMatch( void ) { return (IsInTournamentMode() && IsInWaitingForPlayers()); }
 	bool		IsWaitingForTeams( void ) { return m_bAwaitingReadyRestart; }
 	bool		IsInStopWatch( void ) { return m_bStopWatch; }
@@ -229,11 +186,6 @@ public:
 		return m_bTeamReady[iTeamNumber];
 	}
 
-	bool IsPlayerReady( int iIndex )
-	{
-		return m_bPlayerReady[iIndex];
-	}
-
 	virtual void HandleTeamScoreModify( int iTeam, int iScore) {  };
 
 
@@ -241,35 +193,6 @@ public:
 
 	//Arena Mode
 	virtual bool	IsInArenaMode( void ) { return false; }
-
-	//Koth Mode
-	virtual bool	IsInKothMode( void ) { return false; }
-
-	//Training Mode
-	virtual bool	IsInTraining( void ) { return false; }
-	virtual bool	IsInItemTestingMode( void ) { return false; }
-
-	void SetMultipleTrains( bool bMultipleTrains ){ m_bMultipleTrains = bMultipleTrains; }
-	bool HasMultipleTrains( void ){ return m_bMultipleTrains; }
-
-	virtual int		GetBonusRoundTime( bool bFinal = false );
-
-#if defined(TF_CLIENT_DLL) || defined(TF_DLL)
-
-	// Get list of all the players, including those in the lobby but who have
-	// not yet joined.
-	void GetAllPlayersLobbyInfo( CUtlVector<LobbyPlayerInfo_t> &vecPlayers, bool bIncludeBots = false );
-
-	// Get list of players who are on the defending team now, or are likely
-	// to end up on the defending team (not yet connected or assigned a team)
-	void GetPotentialPlayersLobbyPlayerInfo( CUtlVector<LobbyPlayerInfo_t> &vecLobbyPlayers, bool bIncludeBots = false );
-
-#endif
-
-	void SetAllowBetweenRounds( bool bValue ) { m_bAllowBetweenRounds = bValue; }
-
-public: // IGameEventListener Interface
-	virtual void FireGameEvent( IGameEvent * event );
 
 	//----------------------------------------------------------------------------------
 	// Server specific
@@ -303,30 +226,17 @@ public:
 	virtual void	SetupOnStalemateEnd( void ) { return; }
 	virtual void SetSetup( bool bSetup );
 
-	virtual bool	ShouldGoToBonusRound( void ) { return false; }
-	virtual void	SetupOnBonusStart( void ) { return; }
-	virtual void	SetupOnBonusEnd( void ) { return; }
-	virtual void	BonusStateThink( void ) { return; }
-
-	virtual void	BetweenRounds_Start( void ) { return; }
-	virtual void	BetweenRounds_End( void ) { return; }
-	virtual void	BetweenRounds_Think( void ) { return; }
-
-	virtual void	PreRound_End( void ) { return; }
-
 	bool PrevRoundWasWaitingForPlayers() { return m_bPrevRoundWasWaitingForPlayers; }
 
 	virtual bool ShouldScorePerRound( void ){ return true; }
 
-	bool CheckNextLevelCvar( bool bAllowEnd = true );
+	bool CheckNextLevelCvar( void );
 
 	virtual bool TimerMayExpire( void );
 
 	virtual bool IsValveMap( void ){ return false; }
 
 	virtual		void RestartTournament( void );
-
-	virtual		bool TournamentModeCanEndWithTimelimit( void ){ return true; }
 
 public:
 	void State_Transition( gamerules_roundstate_t newState );
@@ -341,7 +251,7 @@ public:
 	bool IsPreviouslyPlayedRound ( string_t strName );
 	string_t GetLastPlayedRound( void );
 
-	virtual void SetWinningTeam( int team, int iWinReason, bool bForceMapReset = true, bool bSwitchTeams = false, bool bDontAddScore = false, bool bFinal = false ) override;
+	virtual void SetWinningTeam( int team, int iWinReason, bool bForceMapReset = true, bool bSwitchTeams = false, bool bDontAddScore = false );
 	virtual void SetStalemate( int iReason, bool bForceMapReset = true, bool bSwitchTeams = false );
 
 	virtual void SetRoundOverlayDetails( void ){ return; }
@@ -370,26 +280,7 @@ public:
 		m_bTeamReady.Set( iTeam, bState );
 	}
 
-	void SetPlayerReadyState( int iIndex, bool bState )
-	{
-		m_bPlayerReady.Set( iIndex, bState );
-	}
-	void ResetPlayerAndTeamReadyState( void );
-
 	virtual void PlayTrainCaptureAlert( CTeamControlPoint *pPoint, bool bFinalPointInMap ){ return; }
-
-	virtual void PlaySpecialCapSounds( int iCappingTeam, CTeamControlPoint *pPoint ){ return; }
-
-	bool PlayThrottledAlert( int iTeam, const char *sound, float fDelayBeforeNext );
-
-	void BroadcastSound( int iTeam, const char *sound, int iAdditionalSoundFlags = 0 );
-	int GetRoundsPlayed( void ) { return m_nRoundsPlayed; }
-
-	virtual void RecalculateControlPointState( void ){ return; }
-
-	virtual bool ShouldSkipAutoScramble( void ){ return false; }
-
-	virtual bool ShouldWaitToStartRecording( void ){ return IsInWaitingForPlayers(); }
 
 protected:
 	virtual void Think( void );
@@ -401,18 +292,13 @@ protected:
 	virtual void GoToIntermission( void );
 	void		 SetInWaitingForPlayers( bool bWaitingForPlayers );
 	void		 CheckWaitingForPlayers( void );
-	virtual bool AllowWaitingForPlayers( void ) { return true; }
 	void		 CheckRestartRound( void );
-	bool		 CheckTimeLimit( bool bAllowEnd = true );
+	bool		 CheckTimeLimit( void );
 	int			 GetTimeLeft( void );
-	virtual	bool CheckWinLimit( bool bAllowEnd = true );
-	bool		 CheckMaxRounds( bool bAllowEnd = true );
+	virtual	bool CheckWinLimit( void );
+	bool		 CheckMaxRounds( void );
 
 	void		 CheckReadyRestart( void );
-#if defined(TF_CLIENT_DLL) || defined(TF_DLL)
-	bool		 AreLobbyPlayersOnTeamReady( int iTeam );
-	bool		 AreLobbyPlayersConnected( void );
-#endif
 
 	virtual bool CanChangelevelBecauseOfTimeLimit( void ) { return true; }
 	virtual bool CanGoToStalemate( void ) { return true; }
@@ -434,7 +320,6 @@ protected:
 	void State_Think_STARTGAME( void );
 
 	void State_Enter_PREROUND( void );
-	void State_Leave_PREROUND( void );
 	void State_Think_PREROUND( void );
 
 	void State_Enter_RND_RUNNING( void );
@@ -450,24 +335,13 @@ protected:
 	void State_Think_STALEMATE( void );
 	void State_Leave_STALEMATE( void );
 
-	void State_Enter_BONUS( void );
-	void State_Think_BONUS( void );
-	void State_Leave_BONUS( void );
-
-	void State_Enter_BETWEEN_RNDS( void );
-	void State_Leave_BETWEEN_RNDS( void );
-	void State_Think_BETWEEN_RNDS( void );
-
-	// mp_scrambleteams_auto
-	void ResetTeamsRoundWinTracking( void );
-
 protected:
 	virtual void InitTeams( void );
 	virtual int	 CountActivePlayers( void );
 
 	virtual void RoundRespawn( void );
 	virtual void CleanUpMap( void );
-	virtual void CheckRespawnWaves( void );
+	void CheckRespawnWaves( void );
 	void ResetScores( void );
 	void ResetMapTime( void );
 
@@ -475,22 +349,17 @@ protected:
 	void PlayWinSong( int team );
 	void PlayStalemateSong( void );
 	void PlaySuddenDeathSong( void );
+	void BroadcastSound( int iTeam, const char *sound );
 
-	virtual const char* GetStalemateSong( int nTeam ) { return "Game.Stalemate"; }
-	virtual const char* WinSongName( int nTeam ) { return "Game.YourTeamWon"; }
-	virtual const char* LoseSongName( int nTeam ) { return "Game.YourTeamLost"; }
-	
-	virtual void RespawnTeam( int iTeam ) { RespawnPlayers( false, true, iTeam ); }
+	inline void RespawnTeam( int iTeam ) { RespawnPlayers( false, true, iTeam ); }
 
 	void HideActiveTimer( void );
-	virtual void RestoreActiveTimer( void );
+	void RestoreActiveTimer( void );
 
 	virtual void InternalHandleTeamWin( int iWinningTeam ){ return; }
 
 	bool MapHasActiveTimer( void );
 	void CreateTimeLimitTimer( void );
-
-	virtual float GetLastMajorEventTime( void ) override { return m_flLastTeamWin; }
 
 protected:
 	CGameRulesRoundStateInfo	*m_pCurStateInfo;			// Per-state data 
@@ -527,20 +396,10 @@ protected:
 	bool						m_bChangelevelAfterStalemate;
 
 	float						m_flRoundStartTime;		// time the current round started
-	float						m_flNewThrottledAlertTime;		// time that we can play another throttled alert
 
 	int							m_nRoundsPlayed;
 	bool						m_bUseAddScoreAnim;
 
-	gamerules_roundstate_t		m_prevState;
-
-	bool						m_bPlayerReadyBefore[MAX_PLAYERS+1];	// Test to see if a player has hit ready before
-
-	float						m_flLastTeamWin;
-
-private:
-
-	CUtlMap < int, int >	m_GameTeams;  // Team index, Score
 #endif
 	// End server specific
 	//----------------------------------------------------------------------------------
@@ -552,7 +411,6 @@ public:
 	virtual void	OnPreDataChanged( DataUpdateType_t updateType );
 	virtual void	OnDataChanged( DataUpdateType_t updateType );
 	virtual void	HandleOvertimeBegin(){}
-	virtual void	GetTeamGlowColor( int nTeam, float &r, float &g, float &b ){ r = 0.76f; g = 0.76f; b = 0.76f; }
 
 private:
 	bool			m_bOldInWaitingForPlayers;
@@ -561,9 +419,8 @@ private:
 #endif // CLIENT_DLL
 
 public:
-	bool WouldChangeUnbalanceTeams( int iNewTeam, int iCurrentTeam  );
+	bool WouldChangeUnbalanceTeams( int iNumPlayersToMove, int iNewTeam, int iCurrentTeam  );
 	bool AreTeamsUnbalanced( int &iHeaviestTeam, int &iLightestTeam );
-	virtual bool HaveCheatsBeenEnabledDuringLevel( void ) { return m_bCheatsEnabledDuringLevel; }
 
 protected:
 	CNetworkVar( gamerules_roundstate_t, m_iRoundState );
@@ -580,11 +437,8 @@ protected:
 	CNetworkVar( float,			m_flMapResetTime );						// Time that the map was reset
 	CNetworkArray( float,		m_flNextRespawnWave, MAX_TEAMS );		// Minor waste, but cleaner code
 	CNetworkArray( bool,		m_bTeamReady, MAX_TEAMS );
-	CNetworkVar( bool,			m_bStopWatch );
-	CNetworkVar( bool,			m_bMultipleTrains ); // two trains in this map?
-	CNetworkArray( bool,		m_bPlayerReady, MAX_PLAYERS );
-	CNetworkVar( bool,			m_bCheatsEnabledDuringLevel );
-
+	CNetworkVar( bool, m_bStopWatch );
+	
 public:
 	CNetworkArray( float,		m_TeamRespawnWaveTimes, MAX_TEAMS );	// Time between each team's respawn wave
 
@@ -593,13 +447,6 @@ private:
 	float m_flNextBalanceTeamsTime;
 	bool m_bPrintedUnbalanceWarning;
 	float m_flFoundUnbalancedTeamsTime;
-
-	float	m_flAutoBalanceQueueTimeEnd;
-	int		m_nAutoBalanceQueuePlayerIndex;
-	int		m_nAutoBalanceQueuePlayerScore;
-
-protected:
-	bool	m_bAllowBetweenRounds;
 
 public:
 

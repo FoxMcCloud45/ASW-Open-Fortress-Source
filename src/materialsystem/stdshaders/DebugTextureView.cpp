@@ -1,11 +1,15 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2007, Valve Corporation, All rights reserved. ============//
 
 #include "BaseVSShader.h"
-#include "shaderlib/cshader.h"
+#include "shaderlib/CShader.h"
 
 #include "debugtextureview_vs20.inc"
 #include "debugtextureview_ps20.inc"
 #include "debugtextureview_ps20b.inc"
+
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
 
 DEFINE_FALLBACK_SHADER( DebugTextureView, DebugTextureView_dx9 )
 BEGIN_VS_SHADER( DebugTextureView_dx9, "Help for DebugTextureView" )
@@ -23,10 +27,6 @@ BEGIN_VS_SHADER( DebugTextureView_dx9, "Help for DebugTextureView" )
 	
 	SHADER_FALLBACK
 	{
-		if ( g_pHardwareConfig->GetDXSupportLevel() < 90 )
-		{
-			return "UnlitGeneric";
-		}
 		return 0;
 	}
 

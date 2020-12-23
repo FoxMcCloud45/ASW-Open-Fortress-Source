@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -130,8 +130,10 @@ void CUserMessages::HookMessage( const char *name, pfnUserMsgHook hook )
 		return;
 	}
 
-	int i = m_UserMessages[ idx ]->clienthooks.AddToTail();
-	m_UserMessages[ idx ]->clienthooks[i] = hook;
+	ASSERT_LOCAL_PLAYER_RESOLVABLE();
+
+	int i = m_UserMessages[ idx ]->clienthooks[ GET_ACTIVE_SPLITSCREEN_SLOT() ].AddToTail();
+	m_UserMessages[ idx ]->clienthooks[GET_ACTIVE_SPLITSCREEN_SLOT()][i] = hook;
 
 #else
 	Error( "CUserMessages::HookMessage called from server code!!!\n" );
@@ -150,7 +152,7 @@ bool CUserMessages::DispatchUserMessage( int msg_type, bf_read &msg_data )
 #if defined( CLIENT_DLL )
 	if ( msg_type < 0 || msg_type >= (int)m_UserMessages.Count() )
 	{
-		DevMsg( "CUserMessages::DispatchUserMessage:  Bogus msg type %i (max == %i)\n", msg_type, m_UserMessages.Count() );
+		DevMsg( "CUserMessages::DispatchUserMessage:  Bogus msg type %i (MAX == %i)\n", msg_type, m_UserMessages.Count() );
 		Assert( 0 );
 		return false;
 	}
@@ -164,18 +166,19 @@ bool CUserMessages::DispatchUserMessage( int msg_type, bf_read &msg_data )
 		return false;
 	}
 
-	if ( entry->clienthooks.Count() == 0 )
+	int nSlot = GET_ACTIVE_SPLITSCREEN_SLOT();
+
+	if ( entry->clienthooks[nSlot].Count() == 0 )
 	{
-		DevMsg( "CUserMessages::DispatchUserMessage:  missing client hook for %s\n", GetUserMessageName(msg_type) );
-		Assert( 0 );
-		return false;
+		// not hooking a usermessage is acceptable, pretend we parsed it
+		return true;
 	}
 
-	for (int i = 0; i < entry->clienthooks.Count(); i++  )
+	for (int i = 0; i < entry->clienthooks[nSlot].Count(); i++  )
 	{
 		bf_read msg_copy = msg_data;
 
-		pfnUserMsgHook hook = entry->clienthooks[i];
+		pfnUserMsgHook hook = entry->clienthooks[nSlot][i];
 		(*hook)( msg_copy );
 	}
 	return true;

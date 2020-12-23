@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Lightmap only shader
 //
@@ -9,7 +9,13 @@
 #include "BaseVSShader.h"
 #include "convar.h"
 #include "lightmappedgeneric_dx9_helper.h"
+#include "lightmappedpaint_dx9_helper.h"
 
+// NOTE: This has to be the last file included!
+#include "tier0/memdbgon.h"
+
+
+ConVar r_twopasspaint( "r_twopasspaint", "1", 0, "HAZARD: Only change this outside a map. Enable two-pass paint method. You will need to reload all materials when changing this convar" );
 static LightmappedGeneric_DX9_Vars_t s_info;
 
 
@@ -73,6 +79,18 @@ BEGIN_VS_SHADER( LightmappedGeneric,
 		SHADER_PARAM( OUTLINESTART1, SHADER_PARAM_TYPE_FLOAT, "0.0", "inner start value for outline")
 		SHADER_PARAM( OUTLINEEND0, SHADER_PARAM_TYPE_FLOAT, "0.0", "inner end value for outline")
 		SHADER_PARAM( OUTLINEEND1, SHADER_PARAM_TYPE_FLOAT, "0.0", "outer end value for outline")
+
+		SHADER_PARAM( PARALLAXMAP, SHADER_PARAM_TYPE_INTEGER, "0", "1=treat alpha of bumpmap as height" )
+		SHADER_PARAM( HEIGHT_SCALE, SHADER_PARAM_TYPE_FLOAT, "0.1", "height map scale for parallax mapping" )
+
+		SHADER_PARAM( SHADERSRGBREAD360, SHADER_PARAM_TYPE_BOOL, "0", "Simulate srgb read in shader code")
+
+		SHADER_PARAM( ENVMAPLIGHTSCALE, SHADER_PARAM_TYPE_FLOAT, "0.0", "How much the lightmap effects environment map reflection, 0.0 is off, 1.0 will allow complete blackness of the environment map if the lightmap is black" )
+
+		SHADER_PARAM( FOW, SHADER_PARAM_TYPE_TEXTURE, "", "FoW Render Target" )
+		SHADER_PARAM( PAINTSPLATNORMALMAP, SHADER_PARAM_TYPE_TEXTURE, "paint/splatnormal_default", "The paint splat normal map to use when paint is enabled on the surface" )
+		SHADER_PARAM( PAINTSPLATENVMAP, SHADER_PARAM_TYPE_TEXTURE, "env_cubemap", "The envmap to use on the paint pass. You're getting one whether you like it or not" )
+
 END_SHADER_PARAMS
 
 	void SetupVars( LightmappedGeneric_DX9_Vars_t& info )
@@ -134,13 +152,21 @@ END_SHADER_PARAMS
 		info.m_nOutlineStart1 = OUTLINESTART1;
 		info.m_nOutlineEnd0 = OUTLINEEND0;
 		info.m_nOutlineEnd1 = OUTLINEEND1;
+		info.m_nParallaxMap = PARALLAXMAP;
+		info.m_nHeightScale = HEIGHT_SCALE;
+
+		info.m_nShaderSrgbRead360 = SHADERSRGBREAD360;
+
+		info.m_nEnvMapLightScale = ENVMAPLIGHTSCALE;
+
+		info.m_nFoW = FOW;
+
+		info.m_nPaintSplatNormal = PAINTSPLATNORMALMAP;
+		info.m_nPaintSplatEnvMap = PAINTSPLATENVMAP;
 	}
 
 	SHADER_FALLBACK
 	{
-		if( g_pHardwareConfig->GetDXSupportLevel() < 90 )
-			return "LightmappedGeneric_DX8";
-
 		return 0;
 	}
 
@@ -160,5 +186,31 @@ END_SHADER_PARAMS
 	SHADER_DRAW
 	{
 		DrawLightmappedGeneric_DX9( this, params, pShaderAPI, pShaderShadow, s_info, pContextDataPtr );
+		
+		// If the game/mod can potentially support the paint feature, then we need to always record snapshots 
+		// as though there may be a 2nd pass.  When in a map containing paint, you need to also draw the 2nd pass.
+		if ( g_pConfig->m_bPaintInGame )
+		{	
+			// If recording snapshots OR in a map with paint...
+			if ( ( pShaderShadow || g_pConfig->m_bPaintInMap ) && r_twopasspaint.GetBool() )
+			{	
+	#ifdef _X360
+				// Do not render paint during the auto Z pass on Xbox 360
+				if ( pShaderAPI )
+					pShaderAPI->EnablePredication( false, true );
+	#endif // _X360
+
+				DrawLightmappedPaint_DX9( this, params, pShaderAPI, pShaderShadow, s_info, pContextDataPtr );
+
+	#ifdef _X360
+				if ( pShaderAPI )
+					pShaderAPI->DisablePredication();
+	#endif // _X360
+			}
+			else
+			{
+				Draw( false );
+			}
+		}
 	}
 END_SHADER
