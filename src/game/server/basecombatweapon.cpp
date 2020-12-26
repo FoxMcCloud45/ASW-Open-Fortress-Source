@@ -4,6 +4,10 @@
 //
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications and Source SDK 2013 TF defines.
+// * Disabled precache for irrelevant models and particles in Open Fortress.
+
 #include "cbase.h"
 #include "ai_basenpc.h"
 #include "animation.h"
@@ -54,7 +58,7 @@ extern ConVar ai_debug_shoot_positions;
 //-----------------------------------------------------------------------------
 PRECACHE_REGISTER_BEGIN( GLOBAL, WeaponResources )
 
-
+#if !defined( OF_DLL )
 	PRECACHE_INDEX( MODEL, "sprites/zerogxplode.vmt", g_sModelIndexFireball )
 	PRECACHE_INDEX( MODEL, "sprites/steam1.vmt", g_sModelIndexSmoke )
 	PRECACHE_INDEX( MODEL, "sprites/bubble.vmt", g_sModelIndexBubbles )
@@ -64,7 +68,7 @@ PRECACHE_REGISTER_BEGIN( GLOBAL, WeaponResources )
 	PRECACHE( PARTICLE_SYSTEM, "blood_impact_yellow_01" )
 	PRECACHE( MODEL, "models/weapons/w_bullet.mdl" )
 	PRECACHE( MODEL, "effects/bubble.vmt" )
-
+#endif
 
 	PRECACHE( GAMESOUND, "BaseCombatWeapon.WeaponDrop" )
 	PRECACHE( GAMESOUND, "BaseCombatWeapon.WeaponMaterialize" )

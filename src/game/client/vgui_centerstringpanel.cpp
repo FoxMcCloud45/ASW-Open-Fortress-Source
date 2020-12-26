@@ -6,6 +6,11 @@
 // $Date:         $
 // $NoKeywords: $
 //=============================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// * changed scr_centertime's default value from 2 to 5 for Open Fortress, according to Source SDK 2013.
+
 #include "cbase.h"
 #include <stdarg.h>
 #include "vguicenterprint.h"
@@ -21,8 +26,11 @@
 #include "tier0/memdbgon.h"
 
 
-
+#if defined( OF_CLIENT_DLL )
+static ConVar		scr_centertime( "scr_centertime", "5" );
+#else
 static ConVar		scr_centertime( "scr_centertime", "2" );
+#endif
 
 
 //-----------------------------------------------------------------------------

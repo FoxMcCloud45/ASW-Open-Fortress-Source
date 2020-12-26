@@ -1841,6 +1841,9 @@
     <ClCompile Include="hud_crosshair.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="game_controls\classmenu.cpp">
+      <Filter>Source Files\game_controls</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="achievement_notification_panel.h">

@@ -5,6 +5,10 @@
 // $NoKeywords: $
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// * adapted crosshair's color drawing to the Alien Swarm code.
+
 #include "cbase.h"
 #include "hud.h"
 #include "hud_crosshair.h"
@@ -26,7 +30,10 @@ using namespace vgui;
 
 int ScreenTransform( const Vector& point, Vector& screen );
 
+// Open Fortress uses CHudOFCrosshair, derived from CHudCrosshair.
+#if !defined( OF_CLIENT_DLL )
 DECLARE_HUDELEMENT( CHudCrosshair );
+#endif
 
 CHudCrosshair::CHudCrosshair( const char *pElementName ) :
   CHudElement( pElementName ), BaseClass( NULL, "HudCrosshair" )
@@ -107,6 +114,15 @@ bool CHudCrosshair::ShouldDraw( void )
 	return ( bNeedsDraw && CHudElement::ShouldDraw() );
 }
 
+#if defined( OF_CLIENT_DLL )
+// Crosshair RGB values & scale.
+ConVar cl_crosshair_red	 ( "cl_crosshair_red", "255", FCVAR_ARCHIVE, "Value for the crosshair's Red color (RGB)." );
+ConVar cl_crosshair_green( "cl_crosshair_green", "255", FCVAR_ARCHIVE, "Value for the crosshair's Green color (RGB)." );
+ConVar cl_crosshair_blue ( "cl_crosshair_blue", "255", FCVAR_ARCHIVE, "Value for the crosshair's Blue color (RGB).");
+// TODO: IMPLEMENT SCALE FOR OPEN FORTRESS.
+// ConVar cl_crosshair_scale( "cl_crosshair_scale", "1",   FCVAR_ARCHIVE, "Scale for the crosshair." );
+#endif
+
 void CHudCrosshair::Paint( void )
 {
 	if ( !m_pCrosshair )
@@ -186,8 +202,13 @@ void CHudCrosshair::Paint( void )
 	int width = MAX( 1, y * 0.03f );
 	int height = MAX( 1, y * 0.005f );
 
+#if defined( OF_CLIENT_DLL )
+	surface()->DrawSetColor( cl_crosshair_red.GetInt(), cl_crosshair_green.GetInt(), cl_crosshair_blue.GetInt(), 255 );
+#else
 	surface()->DrawSetColor( 128, 196, 220, 255 );
+#endif
 
+	// TODO: IMPLEMENT SCALE FOR OPEN FORTRESS.
 	surface()->DrawFilledRect( x - width - height,
 		y - height / 2,
 		x - width,

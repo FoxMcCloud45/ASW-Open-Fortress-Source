@@ -5,6 +5,8 @@
 // $NoKeywords: $
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
 
 #include "cbase.h"
 #include <stdio.h>
@@ -40,8 +42,11 @@ extern IGameUIFuncs *gameuifuncs; // for key binding details
 
 using namespace vgui;
 
-
+#if defined( OF_CLIENT_DLL )
+#define HUD_CLASSAUTOKILL_FLAGS		( FCVAR_CLIENTDLL | FCVAR_ARCHIVE | FCVAR_USERINFO )
+#else
 #define HUD_CLASSAUTOKILL_FLAGS		( FCVAR_CLIENTDLL | FCVAR_ARCHIVE )
+#endif
 
 
 ConVar hud_classautokill( "hud_classautokill", "1", HUD_CLASSAUTOKILL_FLAGS, "Automatically kill player after choosing a new playerclass." );
@@ -170,13 +175,14 @@ void CClassMenu::OnCommand( const char *command )
 
 		engine->ClientCmd( const_cast<char *>( command ) );
 
-
+#if !defined( OF_CLIENT_DLL )
 		// They entered a command to change their class, kill them so they spawn with 
 		// the new class right away
 		if ( hud_classautokill.GetBool() )
 		{
             engine->ClientCmd( "kill" );
 		}
+#endif
 
 	}
 

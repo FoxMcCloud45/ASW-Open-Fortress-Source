@@ -5,6 +5,11 @@
 //
 // $NoKeywords: $
 //===========================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added cl_flipviewmodels from Source SDK 2013 / Open Fortress base code.
+// * Modified ShouldFlipViewModel to match Open Fortress's modifications.
+
 #include "cbase.h"
 #include "c_baseviewmodel.h"
 #include "model_types.h"
@@ -31,7 +36,12 @@
 
 ConVar vm_debug( "vm_debug", "0", FCVAR_CHEAT );
 ConVar vm_draw_always( "vm_draw_always", "0" );
+
+#if defined ( OF_CLIENT_DLL )
+	ConVar cl_flipviewmodels( "cl_flipviewmodels", "0", FCVAR_USERINFO | FCVAR_ARCHIVE | FCVAR_NOT_CONNECTED, "Flip view models." );
+#else
 ConVar cl_righthand( "cl_righthand", "1", FCVAR_ARCHIVE, "Use right-handed view models." );
+#endif
 
 void PostToolMessage( HTOOLHANDLE hEntity, KeyValues *msg );
 extern float g_flMuzzleFlashScale;
@@ -202,6 +212,9 @@ bool C_BaseViewModel::Interpolate( float currentTime )
 
 inline bool C_BaseViewModel::ShouldFlipViewModel()
 {
+#if defined( OF_CLIENT_DLL )
+	return cl_flipviewmodels.GetBool();
+#else
 	// If cl_righthand is set, then we want them all right-handed.
 	CBaseCombatWeapon *pWeapon = m_hWeapon.Get();
 	if ( pWeapon )
@@ -211,6 +224,7 @@ inline bool C_BaseViewModel::ShouldFlipViewModel()
 	}
 
 	return false;
+#endif
 }
 
 

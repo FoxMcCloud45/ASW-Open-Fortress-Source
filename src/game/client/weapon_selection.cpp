@@ -4,6 +4,11 @@
 //
 // $NoKeywords: $
 //=============================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// * removed hud_fastswitch check for ProcessSelection according to Source SDK 2013 code.
+
 #include "cbase.h"
 #include "weapon_selection.h"
 #include "hud_macros.h"
@@ -162,7 +167,9 @@ void CBaseHudWeaponSelection::ProcessInput()
 		// If so, close weapon selection when they press fire
 		if ( GetHud().m_iKeyBits & IN_ATTACK )
 		{
+#if ( !defined( OF_CLIENT_DLL ) )
 			if ( HUDTYPE_PLUS != hud_fastswitch.GetInt() )
+#endif
 			{
 				// Swallow the button
 				GetHud().m_iKeyBits &= ~IN_ATTACK;

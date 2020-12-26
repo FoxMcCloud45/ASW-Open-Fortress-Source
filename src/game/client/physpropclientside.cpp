@@ -4,6 +4,10 @@
 //
 //===========================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// * added collision group change from Source SDK 2013 code.
+
 #include "cbase.h"
 #include "physpropclientside.h"
 #include "vcollide_parse.h"
@@ -479,6 +483,10 @@ void C_PhysPropClientside::Clone( Vector &velocity )
 
 	pEntity->SetSkin( GetSkin() );
 	pEntity->m_iHealth = m_iHealth;
+
+#if defined( OF_CLIENT_DLL )
+	pEntity->SetCollisionGroup( COLLISION_GROUP_DEBRIS );
+#endif
 
 	if ( pEntity->m_iHealth == 0 )
 	{

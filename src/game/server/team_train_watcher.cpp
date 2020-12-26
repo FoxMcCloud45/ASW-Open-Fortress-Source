@@ -4,6 +4,17 @@
 //
 //===========================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications.
+// * Included of_shareddefs.h for Open Fortress.
+// * Increased links from 4 to 8 (maximum), similarly to Source SDK 2013.
+
+// NOTE: Source SDK 2013 has much more public TF code for this entity.
+//       Backporting it is considered, especially since Open Fortress
+//       may use it for Payload and Payload Race.
+//
+//       However, this may require backporting some more additional stuff.
+
 #include "cbase.h"
 #include "team_train_watcher.h"
 #include "team_control_point.h"
@@ -15,6 +26,10 @@
 #include "engine/IEngineSound.h"
 #include "soundenvelope.h"
 #include "mp_shareddefs.h"
+
+#ifdef OF_DLL
+#include "of_shareddefs.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -51,6 +66,19 @@ BEGIN_DATADESC( CTeamTrainWatcher )
 	DEFINE_KEYFIELD( m_iszLinkedCPs[3], FIELD_STRING, "linked_cp_4" ),
 
 	// can be up to 8 links
+	// And so it is.
+
+	DEFINE_KEYFIELD( m_iszLinkedPathTracks[4], FIELD_STRING, "linked_pathtrack_5" ),
+	DEFINE_KEYFIELD( m_iszLinkedCPs[4], FIELD_STRING, "linked_cp_5" ),
+
+	DEFINE_KEYFIELD( m_iszLinkedPathTracks[5], FIELD_STRING, "linked_pathtrack_6" ),
+	DEFINE_KEYFIELD( m_iszLinkedCPs[5], FIELD_STRING, "linked_cp_6" ),
+
+	DEFINE_KEYFIELD( m_iszLinkedPathTracks[6], FIELD_STRING, "linked_pathtrack_7" ),
+	DEFINE_KEYFIELD( m_iszLinkedCPs[6], FIELD_STRING, "linked_cp_7" ),
+
+	DEFINE_KEYFIELD( m_iszLinkedPathTracks[7], FIELD_STRING, "linked_pathtrack_8" ),
+	DEFINE_KEYFIELD( m_iszLinkedCPs[7], FIELD_STRING, "linked_cp_8" ),
 
 	// min speed for train hud speed levels
 	DEFINE_KEYFIELD( m_flSpeedLevels[0], FIELD_FLOAT, "hud_min_speed_level_1" ),
@@ -83,6 +111,10 @@ CTeamTrainWatcher::CTeamTrainWatcher()
 
 	m_flNextSpeakForwardConceptTime = 0;
 	m_hAreaCap = NULL;
+
+#if defined( OF_DLL )
+	ChangeTeam( OF_TEAM_BLUE );
+#endif
 }
 
 int CTeamTrainWatcher::UpdateTransmitState()

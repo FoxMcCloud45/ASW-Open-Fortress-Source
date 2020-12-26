@@ -4,6 +4,10 @@
 //
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added checks for OF_CLIENT_DLL define, according to Open Fortress Modifications.
+// * disabled precaching of HL2-specific particles for Open Fortress (Source SDK 2013).
+
 #include "cbase.h"
 #include "fx.h"
 #include "fx_sparks.h"
@@ -22,7 +26,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-//Precahce the effects
+//Precache the effects
 PRECACHE_REGISTER_BEGIN( GLOBAL, PrecacheEffectImpacts )
 PRECACHE( MATERIAL, "effects/fleck_cement1" )
 PRECACHE( MATERIAL, "effects/fleck_cement2" )
@@ -73,6 +77,7 @@ PRECACHE_REGISTER_BEGIN( GLOBAL, FX_CacheMaterialHandles )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/blood", g_Mat_BloodPuff[0] )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/blood2", g_Mat_BloodPuff[1] )
 
+#if !defined( OF_CLIENT_DLL )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/muzzleflash1", g_Mat_SMG_Muzzleflash[0] )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/muzzleflash2", g_Mat_SMG_Muzzleflash[1] )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/muzzleflash3", g_Mat_SMG_Muzzleflash[2] )
@@ -81,6 +86,7 @@ PRECACHE_REGISTER_BEGIN( GLOBAL, FX_CacheMaterialHandles )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/combinemuzzle1", g_Mat_Combine_Muzzleflash[0] )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/combinemuzzle2", g_Mat_Combine_Muzzleflash[1] )
 	PRECACHE_INDEX( PARTICLE_MATERIAL, "effects/strider_muzzle", g_Mat_Combine_Muzzleflash[2] )
+#endif
 
 PRECACHE_REGISTER_END()
 

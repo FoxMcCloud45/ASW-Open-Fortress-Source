@@ -4,6 +4,10 @@
 //
 //===========================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// * changed viewmodel_fov's flags from FCVAR_CHEAT to FCVAR_ARCHIVE (Source SDK 2013).
+
 #include "cbase.h"
 #include "view.h"
 #include "iviewrender.h"
@@ -102,7 +106,11 @@ static ConVar r_drawopaqueworld( "r_drawopaqueworld", "1", FCVAR_CHEAT );
 static ConVar r_drawtranslucentworld( "r_drawtranslucentworld", "1", FCVAR_CHEAT );
 static ConVar r_3dsky( "r_3dsky","1", 0, "Enable the rendering of 3d sky boxes" );
 static ConVar r_skybox( "r_skybox","1", FCVAR_CHEAT, "Enable the rendering of sky boxes" );
+#if defined( OF_CLIENT_DLL )
+ConVar r_drawviewmodel( "r_drawviewmodel","1", FCVAR_ARCHIVE );
+#else
 ConVar r_drawviewmodel( "r_drawviewmodel","1", FCVAR_CHEAT );
+#endif
 static ConVar r_drawtranslucentrenderables( "r_drawtranslucentrenderables", "1", FCVAR_CHEAT );
 static ConVar r_drawopaquerenderables( "r_drawopaquerenderables", "1", FCVAR_CHEAT );
 

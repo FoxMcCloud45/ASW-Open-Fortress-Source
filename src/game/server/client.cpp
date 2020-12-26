@@ -4,6 +4,12 @@
 //
 //===============================================================================
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Replicated changes from Open Fortress project:
+//     * Added check for OF_DLL define
+//     * Added includes for OF headers
+//     * Added cast for COFPlayer
+
 #include "cbase.h"
 #include "player.h"
 #include "client.h"
@@ -30,8 +36,6 @@
 #include "fmtstr.h"
 #include "videocfg/videocfg.h"
 
-
-
 #ifdef HL2_DLL
 #include "weapon_physcannon.h"
 #endif
@@ -39,6 +43,12 @@
 #ifdef INFESTED_DLL
 #include "asw_player.h"
 #include "asw_marine.h"
+#endif
+
+#ifdef OF_DLL
+#include "of_player.h"
+#include "of_gamerules.h"
+#include "Multiplayer/multiplayer_animstate.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -1549,7 +1559,9 @@ CON_COMMAND_F( setang_exact, "Snap player eyes and orientation to specified pitc
 	pPlayer->Teleport( NULL, &newang, NULL );
 	pPlayer->SnapEyeAngles( newang );
 
-
+#if defined ( OF_DLL )
+	static_cast<COFPlayer*>( pPlayer )->DoAnimationEvent( PLAYERANIMEVENT_SNAP_YAW );
+#endif
 }
 
 

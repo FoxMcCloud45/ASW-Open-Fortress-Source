@@ -4,6 +4,10 @@
 //
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications.
+// * Added path_track_passed game event for future use by team_train_watcher (Source SDK 2013).
+
 #include "cbase.h"
 #include "pathtrack.h"
 #include "entitylist.h"
@@ -558,4 +562,16 @@ CPathTrack *CPathTrack::Instance( edict_t *pent )
 void CPathTrack::InputPass( inputdata_t &inputdata )
 {
 	m_OnPass.FireOutput( inputdata.pActivator, this );
+
+#if defined ( OF_DLL )
+	// This is intended for team_train_watcher.
+	// For now, team_train_watcher does not implement public TF code added
+	// in Source SDK 2013, so this is unused.
+	IGameEvent * event = gameeventmanager->CreateEvent( "path_track_passed" );
+	if ( event )
+	{
+		event->SetInt( "index", entindex() );
+		gameeventmanager->FireEvent( event, true );
+	}
+#endif
 }

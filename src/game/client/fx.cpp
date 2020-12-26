@@ -5,6 +5,10 @@
 // $Workfile:     $
 // $NoKeywords: $
 //=============================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+
 #include "cbase.h"
 #include "engine/IEngineSound.h"
 #include "particles_simple.h"
@@ -29,8 +33,9 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-//Precahce the effects
+//Precache the effects
 
+#if !defined( OF_CLIENT_DLL )
 PRECACHE_REGISTER_BEGIN( GLOBAL, PrecacheMuzzleFlash )
 PRECACHE( MATERIAL, "effects/muzzleflash1" )
 PRECACHE( MATERIAL, "effects/muzzleflash2" )
@@ -45,7 +50,7 @@ PRECACHE( MATERIAL, "effects/combinemuzzle1" )
 PRECACHE( MATERIAL, "effects/combinemuzzle2" )
 PRECACHE( MATERIAL, "effects/combinemuzzle2_nocull" )
 PRECACHE_REGISTER_END()
-
+#endif
 
 //Whether or not we should emit a dynamic light
 ConVar muzzleflash_light( "muzzleflash_light", "1", FCVAR_ARCHIVE );

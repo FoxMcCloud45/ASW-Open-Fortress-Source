@@ -5,6 +5,11 @@
 // $Workfile:     $
 // $NoKeywords: $
 //===========================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, according to Open Fortress Modifications.
+// * disabled precaching for effects and materials that are not relevant to Open Fortress.
+
 #include "cbase.h"
 #include "model_types.h"
 #include "view_shared.h"
@@ -43,6 +48,7 @@ extern ConVar muzzleflash_light;
 
 //Precache the effects
 
+#if !defined( OF_CLIENT_DLL )
 PRECACHE_REGISTER_BEGIN( GLOBAL, PrecacheEffectMuzzleFlash )
 	PRECACHE( MATERIAL, "effects/combinemuzzle1" )
 	PRECACHE( MATERIAL, "effects/combinemuzzle2" )
@@ -60,7 +66,7 @@ PRECACHE_REGISTER_BEGIN( GLOBAL, PrecacheEffectMuzzleFlash )
 
 	PRECACHE( MATERIAL, "effects/strider_muzzle" )
 PRECACHE_REGISTER_END()
-
+#endif
 
 ConVar func_break_max_pieces( "func_break_max_pieces", "15", FCVAR_ARCHIVE | FCVAR_REPLICATED );
 
@@ -2270,6 +2276,7 @@ void CTempEnts::Update(void)
 // Recache tempents which might have been flushed
 void CTempEnts::LevelInit()
 {
+#if !defined( OF_CLIENT_DLL )
 	m_pSpriteMuzzleFlash[0] = (model_t *)engine->LoadModel( "sprites/ar2_muzzle1.vmt" );
 	m_pSpriteMuzzleFlash[1] = (model_t *)engine->LoadModel( "sprites/muzzleflash4.vmt" );
 	m_pSpriteMuzzleFlash[2] = (model_t *)engine->LoadModel( "sprites/muzzleflash4.vmt" );
@@ -2285,6 +2292,7 @@ void CTempEnts::LevelInit()
 	m_pShells[0] = (model_t *) engine->LoadModel( "models/weapons/shell.mdl" );
 	m_pShells[1] = (model_t *) engine->LoadModel( "models/weapons/rifleshell.mdl" );
 	m_pShells[2] = (model_t *) engine->LoadModel( "models/weapons/shotgun_shell.mdl" );
+#endif
 
 #if defined ( SDK_DLL )
 	m_pCS_9MMShell		= (model_t *)engine->LoadModel( "models/Shells/shell_9mm.mdl" );

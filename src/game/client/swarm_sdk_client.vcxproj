@@ -328,6 +328,7 @@ exit 1
     <ClCompile Include="c_func_lod.cpp" />
     <ClCompile Include="c_team_objectiveresource.cpp" />
     <ClCompile Include="c_team_train_watcher.cpp" />
+    <ClCompile Include="game_controls\classmenu.cpp" />
     <ClCompile Include="hl2\C_Func_Monitor.cpp" />
     <ClCompile Include="c_func_movelinear.cpp" />
     <ClCompile Include="c_func_occluder.cpp" />

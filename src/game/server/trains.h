@@ -4,6 +4,10 @@
 //
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added Of_DLL preprocessor condition, based on Open Fortress modifications.
+// * 
+
 #ifndef TRAINS_H
 #define TRAINS_H
 #ifdef _WIN32
@@ -108,6 +112,13 @@ public:
 	void InputSetSpeedDirAccel( inputdata_t &inputdata );
 
 	static CFuncTrackTrain *Instance( edict_t *pent );
+
+#if defined( OF_DLL )
+	int UpdateTransmitState()
+	{
+		return SetTransmitState( FL_EDICT_ALWAYS );
+	}
+#endif
 
 	DECLARE_DATADESC();
 

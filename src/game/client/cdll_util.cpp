@@ -5,6 +5,11 @@
 // $Workfile:     $
 // $NoKeywords: $
 //===========================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, according to Open Fortress Modifications.
+// * changed MAP_KEY_FILE to viewed.res, according to Source SDK 2013.
+
 #include "cbase.h"
 #include <stdarg.h>
 #include "hud.h"
@@ -1154,8 +1159,11 @@ bool UTIL_GetMapLoadCountFileName( int iController, const char *pszFilePrependNa
 	return true;
 }
 
-
+#if defined( OF_CLIENT_DLL )
+#define MAP_KEY_FILE "viewed.res"
+#else
 #define MAP_KEY_FILE "mapkeys.res"
+#endif
 
 
 void UTIL_IncrementMapKey( const char *pszCustomKey )

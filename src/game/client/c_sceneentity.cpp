@@ -4,6 +4,10 @@
 //
 // $NoKeywords: $
 //=============================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added checks for OF_CLIENT_DLL define, according to Open Fortress Modifications.
+
 #include "cbase.h"
 #include "networkstringtable_clientdll.h"
 #include "dt_utlvector_recv.h"
@@ -71,7 +75,10 @@ C_SceneEntity::~C_SceneEntity( void )
 
 void C_SceneEntity::OnResetClientTime()
 {
+	// In Open Fortress, the scene is entirely client-side so this is not needed.
+#if !defined( OF_CLIENT_DLL )
 	m_flCurrentTime = m_flForceClientTime;
+#endif
 }
 
 char const *C_SceneEntity::GetSceneFileName()

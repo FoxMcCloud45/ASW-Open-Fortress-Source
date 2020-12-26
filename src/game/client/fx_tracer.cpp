@@ -3,6 +3,11 @@
 // Purpose: 
 //
 //=============================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// * GetTracerOrigin(): added check for dormant entity according to Source SDK 2013 code.
+
 #include "cbase.h"
 #include "fx.h"
 #include "c_te_effect_dispatch.h"
@@ -41,7 +46,10 @@ Vector GetTracerOrigin( const CEffectData &data )
 
 		C_BaseEntity *pEnt = data.GetEntity();
 
-
+#if defined ( OF_CLIENT_DLL )
+		if ( pEnt && pEnt->IsDormant() )
+			return vecStart;
+#endif
 
 		FOR_EACH_VALID_SPLITSCREEN_PLAYER( hh )
 		{

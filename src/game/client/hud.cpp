@@ -10,6 +10,11 @@
 //
 // implementation of CHud class
 //
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// WARNING: hud.cpp from Open Fortress project lacks the changelog required by the license.
+
 #include "cbase.h"
 #include "hud_macros.h"
 #include "history_resource.h"
@@ -129,7 +134,10 @@ CHudElement::CHudElement( const char *pElementName )
 	SetNeedsRemove( false );
 	m_bIsParentedToClientDLLRootPanel = false;
 
-
+	// Make this for all hud elements, but when its a bit safer
+#if defined( OF_CLIENT_DLL )
+	RegisterForRenderGroup( "global" );
+#endif
 }
 
 //-----------------------------------------------------------------------------

@@ -4,6 +4,10 @@
 //
 // $NoKeywords: $
 //===========================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added checks for OF_CLIENT_DLL define, according to Open Fortress Modifications.
+
 #include "cbase.h"
 #include "IViewRender.h"
 #include "precache_register.h"

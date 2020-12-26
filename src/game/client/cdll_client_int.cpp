@@ -3,6 +3,10 @@
 //
 //===============================================================================
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, according to Open Fortress modifications.
+// * particles are no longer uncached when exiting a map due to Open Fortress's loadout screen.
+
 #include "cbase.h"
 #include <crtmemdebug.h>
 #include "vgui_int.h"
@@ -1761,9 +1765,7 @@ void ConfigureCurrentSystemLevel()
 		nGPUMemLevel = 360;
 	}
 
-#if defined( OF_CLIENT_DLL )
-	char szModName[32] = "of";
-#elif defined( SWARM_DLL )
+#if defined( SWARM_DLL )
 	char szModName[32] = "swarm";
 #elif defined ( HL2_EPISODIC )
 	char szModName[32] = "ep2";
@@ -1967,7 +1969,12 @@ void CHLClient::LevelShutdown( void )
 	messagechars->Clear();
 
 	g_pParticleSystemMgr->LevelShutdown();
+
+#if !defined( OF_CLIENT_DLL )
+	// We don't uncache particles in Open Fortress since they may be used on loadout screens
+	// without having a map loaded.
 	g_pParticleSystemMgr->UncacheAllParticleSystems();
+#endif
 	UncacheAllMaterials();
 
 #ifdef _XBOX

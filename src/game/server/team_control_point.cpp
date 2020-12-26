@@ -4,6 +4,11 @@
 //
 //===========================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications.
+// * Included of_gamerules.h of_shareddefs.h for Open Fortress, similarly to Open Fortress modifications.
+// * Implemented TF-specific code from Source SDK 2013 to Alien Swarm.
+
 #include "cbase.h"
 #include "team_control_point.h"
 #include "player.h"
@@ -14,6 +19,11 @@
 #include "mp_shareddefs.h"
 #include "engine/IEngineSound.h"
 #include "soundenvelope.h"
+
+#if defined( OF_DLL )
+#include "of_shareddefs.h"
+#include "of_gamerules.h"
+#endif
 
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
@@ -71,7 +81,9 @@ CTeamControlPoint::CTeamControlPoint()
 	m_TeamData.SetSize( GetNumberOfTeams() );
 	m_pCaptureInProgressSound = NULL;
 
-
+#if defined( OF_DLL )
+	UseClientSideAnimation();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -86,7 +98,24 @@ void CTeamControlPoint::Spawn( void )
 		m_iDefaultOwner = TEAM_UNASSIGNED;
 	}
 
-
+#if defined( OF_DLL )
+	if ( m_iszCaptureStartSound == NULL_STRING )
+	{
+		m_iszCaptureStartSound = AllocPooledString( "Hologram.Start" );
+	}
+	if ( m_iszCaptureEndSound == NULL_STRING )
+	{
+		m_iszCaptureEndSound = AllocPooledString( "Hologram.Stop" );
+	}
+	if ( m_iszCaptureInProgress == NULL_STRING )
+	{
+		m_iszCaptureInProgress = AllocPooledString( "Hologram.Move" );
+	}
+	if ( m_iszCaptureInterrupted == NULL_STRING )
+	{
+		m_iszCaptureInterrupted = AllocPooledString( "Hologram.Interrupted" );
+	}
+#endif
 
 	Precache();
 
@@ -237,7 +266,10 @@ void CTeamControlPoint::Precache( void )
 		PrecacheScriptSound( STRING( m_iszWarnSound ) );
 	}
 
-
+#if defined( OF_DLL )
+	PrecacheScriptSound( "Announcer.ControlPointContested" );
+	PrecacheScriptSound( "Announcer.ControlPointContested_Neutral" );
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -273,8 +305,18 @@ void CTeamControlPoint::HandleScoring( int iTeam )
 		CTeamControlPointMaster *pMaster = g_hControlPointMasters.Count() ? g_hControlPointMasters[0] : NULL;
 		if ( pMaster && !pMaster->WouldNewCPOwnerWinGame( this, iTeam ) )
 		{
-			CTeamRecipientFilter filter( iTeam );
-			EmitSound( filter, entindex(), "Hud.EndRoundScored" );
+#if defined( OF_DLL )
+			if ( TeamplayRoundBasedRules()->GetGameType() == TF_GAMETYPE_ESCORT )
+			{
+				CBroadcastRecipientFilter filter;
+				EmitSound( filter, entindex(), "Hud.EndRoundScored" );
+			}
+			else
+#endif
+			{
+			    CTeamRecipientFilter filter( iTeam );
+			    EmitSound( filter, entindex(), "Hud.EndRoundScored" );
+			}
 		}
 	}
 }

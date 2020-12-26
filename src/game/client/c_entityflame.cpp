@@ -5,6 +5,10 @@
 // $NoKeywords: $
 //===========================================================================//
 
+// foxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, according to Open Fortress's c_fire_smoke.cpp.
+// * changed particle used for CEntityFlame.
+
 #include "cbase.h"
 #include "c_entityflame.h"
 #include "particle_property.h"
@@ -84,7 +88,12 @@ void C_EntityFlame::CreateEffect( void )
 	if ( pEntity && !pEntity->IsAbleToHaveFireEffect() )
 		return;
 
+#if defined( OF_CLIENT_DLL )
+	m_hEffect = ParticleProp()->Create( "burningplayer_red", PATTACH_ABSORIGIN_FOLLOW );
+#else
 	m_hEffect = ParticleProp()->Create( m_bCheapEffect ? "burning_gib_01" : "burning_character", PATTACH_ABSORIGIN_FOLLOW );
+#endif
+
 	if ( m_hEffect )
 	{
 		m_hOldAttached = m_hEntAttached;

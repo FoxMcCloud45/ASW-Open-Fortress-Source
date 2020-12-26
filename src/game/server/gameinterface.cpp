@@ -6,6 +6,9 @@
 //			to external modules
 //===========================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define according to Open Fortress modifications and Source SDK 2013 TF defines.
+
 #include "cbase.h"
 #include "gamestringpool.h"
 #include "mapentities_shared.h"

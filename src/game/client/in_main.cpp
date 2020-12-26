@@ -7,6 +7,9 @@
 // $NoKeywords: $
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * added check for OF_CLIENT_DLL define, based on Open Fortress Modifications.
+// * added toggle_duck ConCommand from Source SDK 2013 code.
 
 #include "cbase.h"
 #include "kbutton.h"
@@ -1793,7 +1796,9 @@ static ConCommand startgrenade2( "+grenade2", IN_Grenade2Down );
 static ConCommand startlookspin("+lookspin", IN_LookSpinDown);
 static ConCommand endlookspin("-lookspin", IN_LookSpinUp);
 
-
+#if defined( OF_CLIENT_DLL )
+static ConCommand toggle_duck( "toggle_duck", IN_DuckToggle );
+#endif
 
 #ifdef INFESTED_DLL
 static ConCommand endprevability( "-prevability", IN_PrevAbilityUp );

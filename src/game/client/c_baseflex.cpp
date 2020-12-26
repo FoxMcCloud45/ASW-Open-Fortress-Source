@@ -4,6 +4,11 @@
 //
 // $NoKeywords: $
 //===========================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_CLIENT_DLL define, according to Open Fortress Modifications.
+// * Copied TF-specific code from Source SDK 2013 code.
+
 #include "cbase.h"
 #include "filesystem.h"
 #include "sentence.h"
@@ -438,7 +443,50 @@ public:
 		FindSceneFile( NULL, "randomAlert", true );
 #endif
 
+#if defined( OF_CLIENT_DLL )
+	// HACK TO ALL TF TO HAVE PER CLASS OVERRIDES
+		char const *pTFClasses[] = 
+		{
+			"scout",
+			"sniper",
+			"soldier",
+			"demo",
+			"medic",
+			"heavy",
+			"pyro",
+			"spy",
+			"engineer",
+		};
 
+		char fn[ MAX_PATH ];
+		for ( int i = 0; i < ARRAYSIZE( pTFClasses ); ++i )
+		{
+			Q_snprintf( fn, sizeof( fn ), "player/%s/phonemes/phonemes", pTFClasses[i] );
+			FindSceneFile( NULL, fn, true );
+			Q_snprintf( fn, sizeof( fn ), "player/%s/phonemes/phonemes_weak", pTFClasses[i] );
+			FindSceneFile( NULL, fn, true );
+			Q_snprintf( fn, sizeof( fn ), "player/%s/phonemes/phonemes_strong", pTFClasses[i] );
+			FindSceneFile( NULL, fn, true );
+
+			if ( !IsX360() )
+			{
+				Q_snprintf( fn, sizeof( fn ), "player/hwm/%s/phonemes/phonemes", pTFClasses[i] );
+				FindSceneFile( NULL, fn, true );
+				Q_snprintf( fn, sizeof( fn ), "player/hwm/%s/phonemes/phonemes_weak", pTFClasses[i] );
+				FindSceneFile( NULL, fn, true );
+				Q_snprintf( fn, sizeof( fn ), "player/hwm/%s/phonemes/phonemes_strong", pTFClasses[i] );
+				FindSceneFile( NULL, fn, true );
+			}
+
+			Q_snprintf( fn, sizeof( fn ), "player/%s/emotion/emotion", pTFClasses[i] );
+			FindSceneFile( NULL, fn, true );
+			if ( !IsX360() )
+			{
+				Q_snprintf( fn, sizeof( fn ), "player/hwm/%s/emotion/emotion", pTFClasses[i] );
+				FindSceneFile( NULL, fn, true );
+			}
+		}
+#endif
 
 		InitRecursive( NULL );
 		return true;
