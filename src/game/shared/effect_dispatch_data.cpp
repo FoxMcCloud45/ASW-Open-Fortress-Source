@@ -5,6 +5,10 @@
 // $NoKeywords: $
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications.
+// * Backported public TF code from Source SDK 2013.
+
 #include "cbase.h"
 #include "effect_dispatch_data.h"
 #include "coordsize.h"
@@ -93,8 +97,11 @@
 #endif
 		SendPropQAngles( SENDINFO_NOCHECK( m_vAngles ), 7 ),
 
-
+#if defined( OF_DLL )
+		SendPropVector( SENDINFO_NOCHECK( m_vNormal ), 6, 0, -1.0f, 1.0f ),
+#else
 		SendPropVector( SENDINFO_NOCHECK( m_vNormal ), 0, SPROP_NORMAL ),
+#endif
 
 
 		SendPropInt( SENDINFO_NOCHECK( m_fFlags ), MAX_EFFECT_FLAG_BITS, SPROP_UNSIGNED ),

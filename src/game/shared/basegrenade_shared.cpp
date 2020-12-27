@@ -4,6 +4,11 @@
 //
 // $NoKeywords: $
 //===========================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications and Source SDK 2013 TF defines.
+// * Backported public TF code from Source SDK 2013.
+
 #include "cbase.h"
 #include "decals.h"
 #include "basegrenade_shared.h"
@@ -129,7 +134,11 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	Vector vecAbsOrigin = GetAbsOrigin();
 	int contents = UTIL_PointContents ( vecAbsOrigin, MASK_ALL );
 
-
+#if defined( OF_DLL )
+	// Since this code only runs on the server, make sure it shows the tempents it creates.
+	// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+	CDisablePredictionFiltering disabler;
+#endif
 
 	if ( pTrace->fraction != 1.0 )
 	{

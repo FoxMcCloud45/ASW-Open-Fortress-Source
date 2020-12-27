@@ -4,6 +4,9 @@
 //
 //===============================================================================
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added checks for OF_DLL and OF_CLIENT_DLL defines, according to Open Fortress modifications.
+// * Changed duck time, hulls and USE key behaviors to match Source SDK 2013.
 
 #ifndef SHAREDDEFS_H
 #define SHAREDDEFS_H
@@ -21,8 +24,11 @@
 #define ROUND_TO_TICKS( t )		( TICK_INTERVAL * TIME_TO_TICKS( t ) )
 #define TICK_NEVER_THINK		(-1)
 
-
+#if defined( OF_DLL )
+#define ANIMATION_CYCLE_BITS		10
+#else
 #define ANIMATION_CYCLE_BITS		15
+#endif
 
 #define ANIMATION_CYCLE_MINFRAC		(1.0f / (1<<ANIMATION_CYCLE_BITS))
 

@@ -5,6 +5,10 @@
 // $NoKeywords: $
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, according to Open Fortress modifications.
+// * Changed mp_waitingforplayers_time's default value to 30 to reflect OF changes.
+
 #include "cbase.h"
 #include "multiplay_gamerules.h"
 #include "viewport_panel_names.h"
@@ -81,9 +85,13 @@ ConVar tv_delaymapchange( "tv_delaymapchange", "0", 0, "Delays map change until 
 
 ConVar mp_restartgame( "mp_restartgame", "0", FCVAR_GAMEDLL, "If non-zero, game will restart in the specified number of seconds" );
 
-
+#if !defined( OF_DLL )
 ConVar mp_waitingforplayers_time( "mp_waitingforplayers_time", "0", FCVAR_GAMEDLL, "WaitingForPlayers time length in seconds" );
+#endif
 
+#if defined( OF_DLL )
+ConVar mp_waitingforplayers_time( "mp_waitingforplayers_time", "30", FCVAR_GAMEDLL, "WaitingForPlayers time length in seconds" );
+#endif
 
 ConVar mp_waitingforplayers_restart( "mp_waitingforplayers_restart", "0", FCVAR_GAMEDLL, "Set to 1 to start or restart the WaitingForPlayers period." );
 ConVar mp_waitingforplayers_cancel( "mp_waitingforplayers_cancel", "0", FCVAR_GAMEDLL, "Set to 1 to end the WaitingForPlayers period." );

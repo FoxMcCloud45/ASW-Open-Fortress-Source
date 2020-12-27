@@ -4,6 +4,10 @@
 //
 // $NoKeywords: $
 //=============================================================================//
+
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications and Source SDK 2013 TF defines.
+
 #include "cbase.h"
 #include "baseviewmodel_shared.h"
 #include "datacache/imdlcache.h"
@@ -84,7 +88,9 @@ void CBaseViewModel::Spawn( void )
 }
 
 
-
+#if defined( OF_DLL )
+#define VGUI_CONTROL_PANELS
+#endif
 
 
 

@@ -4,6 +4,10 @@
 //
 //===========================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL and OF_CLIENT_DLL define, based on Open Fortress modifications and Source SDK 2013 TF defines.
+// * Backported public TF code from Source SDK 2013.
+
 #ifndef COMBATWEAPON_SHARED_H
 #define COMBATWEAPON_SHARED_H
 #ifdef _WIN32

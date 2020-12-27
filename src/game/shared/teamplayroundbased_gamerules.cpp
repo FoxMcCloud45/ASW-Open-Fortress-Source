@@ -4,6 +4,10 @@
 //
 //=============================================================================
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added checks for OF_DLL defines
+// * Backported public TF code from Source SDK 2013.
+
 #include "cbase.h"
 #include "mp_shareddefs.h"
 #include "teamplayroundbased_gamerules.h"
@@ -28,6 +32,10 @@
 #endif
 
 #include "matchmaking/imatchframework.h"
+
+#if defined( OF_DLL )
+	#include "of_gamerules.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -897,6 +905,16 @@ void CTeamplayRoundBasedRules::CheckRestartRound( void )
 				else if ( ShouldScrambleTeams() )
 				{
 					pFormat = ( iRestartDelay > 1 ) ? "#game_scramble_in_secs" : "#game_scramble_in_sec";
+#if defined ( OF_DLL )
+					IGameEvent *event = gameeventmanager->CreateEvent( "teamplay_alert" );
+					if ( event )
+					{
+						event->SetInt( "alert_type", HUD_ALERT_SCRAMBLE_TEAMS );
+						gameeventmanager->FireEvent( event );
+					}
+
+					pFormat = NULL;
+#endif
 				}
 				else
 				{
@@ -1482,6 +1500,14 @@ void CTeamplayRoundBasedRules::State_Think_TEAM_WIN( void )
 {
 	if( gpGlobals->curtime > m_flStateTransitionTime )
 	{
+#if defined ( OF_DLL )
+		IGameEvent *event = gameeventmanager->CreateEvent( "scorestats_accumulated_update" );
+		if ( event )
+		{
+			gameeventmanager->FireEvent( event );
+		}
+#endif // OF_DLL
+
 		bool bDone = !(!CheckTimeLimit() && !CheckWinLimit() && !CheckMaxRounds() && !CheckNextLevelCvar());
 
 		// check the win limit, MAX rounds, time limit and nextlevel cvar before starting the next round
@@ -2556,6 +2582,14 @@ void CTeamplayRoundBasedRules::ResetScores( void )
 	m_bResetPlayerScores = true;
 	m_bResetRoundsPlayed = true;
 	//m_flStopWatchTime = -1.0f;
+
+#if defined ( OF_DLL )
+	IGameEvent *event = gameeventmanager->CreateEvent( "scorestats_accumulated_reset" );
+	if ( event )
+	{
+		gameeventmanager->FireEvent( event );
+	}
+#endif // TF_DLL
 }
 
 //-----------------------------------------------------------------------------
@@ -2695,8 +2729,12 @@ string_t CTeamplayRoundBasedRules::GetLastPlayedRound( void )
 //-----------------------------------------------------------------------------
 CTeamRoundTimer *CTeamplayRoundBasedRules::GetActiveRoundTimer( void )
 {
-
+#if defined ( OF_DLL )
+	int iTimerEntIndex = ObjectiveResource()->GetTimerInHUD();
+	return ( dynamic_cast<CTeamRoundTimer *>( UTIL_EntityByIndex( iTimerEntIndex ) ) );
+#else
 	return NULL;
+#endif
 
 }
 

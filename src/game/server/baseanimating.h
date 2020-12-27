@@ -4,6 +4,10 @@
 //
 //===========================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_DLL define, based on Open Fortress modifications and Source SDK 2013 TF defines.
+// * Changed ANIMATION_POSEPARAMETER_BITS from 11 to 8, according to Source SDK 2013 code.
+
 #ifndef BASEANIMATING_H
 #define BASEANIMATING_H
 #ifdef _WIN32
@@ -557,7 +561,11 @@ EXTERN_SEND_TABLE(DT_BaseAnimating);
 #define ANIMATION_BODY_BITS				32	// body combinations
 #define ANIMATION_HITBOXSET_BITS		2	// hit box sets 
 
+#if defined( OF_DLL )
+#define ANIMATION_POSEPARAMETER_BITS	8	// pose parameter resolution
+#else
 #define ANIMATION_POSEPARAMETER_BITS	11	// pose parameter resolution
+#endif
 
 #define ANIMATION_PLAYBACKRATE_BITS		8	// default playback rate, only used on leading edge detect sequence changes
 
