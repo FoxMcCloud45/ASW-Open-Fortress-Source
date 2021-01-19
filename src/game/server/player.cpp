@@ -2649,7 +2649,11 @@ void CBasePlayer::JumptoPosition(const Vector &origin, const QAngle &angles)
 
 bool CBasePlayer::SetObserverTarget(CBaseEntity *target)
 {
+#if defined( OF_DLL )
+	if ( !IsValidObserverTarget( target ) || !target )
+#else
 	if ( !IsValidObserverTarget( target ) )
+#endif
 		return false;
 	
 	// set new target

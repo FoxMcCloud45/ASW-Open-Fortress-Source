@@ -2,11 +2,20 @@
 // Purpose: COFWeaponBase is the root of all OF weapons
 // Author(s): Nopey, Fenteale
 //
+
+// FoxMcCloud45 modifications
+// * econ/ihasowner.h not available in this engine branch.
+// * OFWeaponID to int
+
 #pragma once
 
 #include "basecombatweapon_shared.h"
 #include "of_weapon_parse.h"
 #include "predictable_entity.h"
+
+#ifdef CLIENT_DLL
+#define COFPlayer C_OFPlayer
+#endif
 
 //--------------------------------------------------------------------------------------------------------
 //
@@ -15,11 +24,14 @@
 typedef enum
 {
     WEAPON_NONE,
-
+	OF_WEAPON_SMG,
+	OF_WEAPON_SHOTGUN,
     WEAPON_OFTODO,
 
     WEAPON_OFMAX,
 } OFWeaponID;
+
+const char *WeaponIDToAlias( int id );
 
 #if defined( CLIENT_DLL )
     #define COFWeaponBase C_OFWeaponBase
@@ -41,6 +53,8 @@ typedef enum
     OnResourceMeterFilled
     GetChargeInterval
 */
+
+class COFPlayer;
 
 //OFTODO: Mark many COFWeaponBase getters const
 class COFWeaponBase: public CBaseCombatWeapon /*,IHasOwner */ /*, IHasGenericMeter */ {
@@ -91,15 +105,20 @@ class COFWeaponBase: public CBaseCombatWeapon /*,IHasOwner */ /*, IHasGenericMet
     // virtual bool Holster( CBaseCombatWeapon *pSwitchingTo ) override;
     virtual void SetWeaponVisible( bool visible ) override;
     // virtual void OnActiveStateChanged( int iOldState ) override;
-    // virtual void ItemPostFrame() override;
+	virtual void Detach();
+    virtual void ItemPostFrame() override;
+	virtual void ReloadSinglyPostFrame();
+	virtual bool ReloadSingly();
+	virtual void IncrementAmmo();
+	virtual void SetReloadTimer( float flReloadTime );
     // virtual void ItemBusyFrame() override;
     // virtual void ItemHolsterFrame() override;
     // virtual void WeaponIdle() override;
     // virtual void CheckReload() override;
     // virtual void FinishReload() override;
     // virtual void AbortReload() override;
-    // virtual bool Reload() override;
-    // virtual void AutoFiresFullClip() const override;
+    virtual bool Reload() override;
+	virtual bool AutoFiresFullClip() const { return false; };
     // virtual void PrimaryAttack() override;
     // virtual void SecondaryAttack() override;
     // virtual const Vector &GetBulletSpread();
@@ -152,7 +171,7 @@ class COFWeaponBase: public CBaseCombatWeapon /*,IHasOwner */ /*, IHasGenericMet
     // virtual void RemoveExtraWearables();
     virtual void Misfire();
     virtual void CalcIsAttackCritical();
-    // virtual void FireFullClipAtOnce();
+	virtual void FireFullClipAtOnce() { return; };
     // virtual bool CalcIsAttackCriticalHelper();
     // virtual bool CalcIsAttackCriticalHelperNoCrits();
     // virtual int GetPenetrateType();
@@ -184,7 +203,7 @@ class COFWeaponBase: public CBaseCombatWeapon /*,IHasOwner */ /*, IHasGenericMet
     // virtual void PlayDeflectionSound(bool);
     // virtual float GetDeflectionRadius();
     // virtual float GetJarateTime();
-    // virtual bool CanAttack();
+    virtual bool CanAttack();
     // virtual int GetCanAttackFlags();
     // virtual void WeaponReset();
     // virtual void WeaponRegenerate();
@@ -203,10 +222,12 @@ class COFWeaponBase: public CBaseCombatWeapon /*,IHasOwner */ /*, IHasGenericMet
     // virtual bool IsViewModelFlipped();
     // virtual int GetMaxHealthMod();
     // virtual float GetLastDeployTime();
-    //virtual bool IsEnergyWeapon() const; //TRIMMED!
+	virtual bool IsEnergyWeapon() const { return false; };
     // virtual bool IsBlastImpactWeapon();
-    // virtual float Energy_GetShotCost();
-    // virtual float Energy_GetRechargeCost();
+    // OFSTATUS: COMPLETE
+    virtual float Energy_GetShotCost(){ return 4.0f; };
+	// OFSTATUS: COMPLETE
+    virtual float Energy_GetRechargeCost(){ return 4.0f; };
     // virtual Vector GetParticleColor(int);
     // virtual bool HasLastShotCritical();
     // virtual bool UseServerRandomSeed();
@@ -233,4 +254,20 @@ class COFWeaponBase: public CBaseCombatWeapon /*,IHasOwner */ /*, IHasGenericMet
     // (oh, and it doesn't have any overrides)
     // or in other words, all my homies hate CTFWeaponBase::OnUpgraded
     // void OnUpgraded();
+
+	COFPlayer	*GetOFPlayerOwner() const;
+
+	const COFWeaponInfo	&GetOFWpnData( void ) const;
+
+public:
+	int m_iWeaponMode; // Used in stuff like airblast 'n similar
+	CNetworkVar( int, m_iReloadStage );
+private:
+	CNetworkVar( bool, m_bAnimReload );
+	CNetworkVar( bool, m_bInAttack );
+	CNetworkVar( bool, m_bInAttack2 );
+	CNetworkVar( float, m_flEnergy );
+	CNetworkVar( int, m_iConsecutiveShots );
+	CNetworkVar( int, m_iOldClip );
+	CNetworkVar( float, m_flOldPrimaryAttack );
 };

@@ -1565,6 +1565,21 @@
     <ClCompile Include="..\shared\teamplay_gamerules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="of\te_firebullets.cpp">
+      <Filter>Source Files\OF</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_fx_shared.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_objectiveresource.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_weapon_base_gun.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_weapon_smg.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\achievement_saverestore.h">
@@ -3258,6 +3273,21 @@
     </ClInclude>
     <ClInclude Include="..\shared\teamplay_gamerules.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="of\te_firebullets.h">
+      <Filter>Source Files\OF</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_fx_shared.h">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_objectiveresource.h">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_weapon_base_gun.h">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_weapon_smg.h">
+      <Filter>Source Files\OF\Shared</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

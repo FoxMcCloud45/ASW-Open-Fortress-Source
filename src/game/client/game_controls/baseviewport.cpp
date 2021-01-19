@@ -11,6 +11,9 @@
 // $NoKeywords: $
 //=============================================================================//
 
+// FoxMcCloud45 Modifications (CC-BY-NC-CA)
+// * Added check for OF_CLIENT_DLL define, based on Open Fortress modifications and Source SDK 2013 TF defines.
+
 #pragma warning( disable : 4800  )  // disable forcing int to bool performance warning
 
 #include "cbase.h"
@@ -226,8 +229,10 @@ void CBaseViewport::CreateDefaultPanels( void )
 	AddNewPanel( CreatePanelByName( PANEL_SCOREBOARD ), "PANEL_SCOREBOARD" );
 	AddNewPanel( CreatePanelByName( PANEL_INFO ), "PANEL_INFO" );
 	AddNewPanel( CreatePanelByName( PANEL_SPECGUI ), "PANEL_SPECGUI" );
+#if !defined ( OF_CLIENT_DLL )
 	AddNewPanel( CreatePanelByName( PANEL_SPECMENU ), "PANEL_SPECMENU" );
 	AddNewPanel( CreatePanelByName( PANEL_NAV_PROGRESS ), "PANEL_NAV_PROGRESS" );
+#endif
 }
 
 void CBaseViewport::UpdateAllPanels( void )
@@ -276,11 +281,12 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 	{
 		newpanel = new CSpectatorGUI( this );
 	}
+#if !defined( OF_CLIENT_DLL )
 	else if ( Q_strcmp(PANEL_NAV_PROGRESS, szPanelName) == 0 )
 	{
 		newpanel = new CNavProgress( this );
 	}
-
+#endif // OF_CLIENT_DLL
 
 #endif // !XBOX
 
@@ -681,7 +687,9 @@ void CBaseViewport::OnThink()
 			m_pActivePanel = NULL;
 	}
 
+#if !defined ( OF_CLIENT_DLL )
 	m_pAnimController->UpdateAnimations( gpGlobals->curtime );
+#endif // OF_CLIENT_DLL
 
 	// check the auto-reload cvar
 	m_pAnimController->SetAutoReloadScript(hud_autoreloadscript.GetBool());

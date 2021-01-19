@@ -249,13 +249,17 @@ exit 1
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shared\Multiplayer\multiplayer_animstate.cpp" />
+    <ClCompile Include="..\shared\of\of_fx_shared.cpp" />
     <ClCompile Include="..\shared\of\of_gamemovement.cpp" />
     <ClCompile Include="..\shared\of\of_gamerules.cpp" />
+    <ClCompile Include="..\shared\of\of_objectiveresource.cpp" />
     <ClCompile Include="..\shared\of\of_playeranimstate.cpp" />
     <ClCompile Include="..\shared\of\of_shareddefs.cpp" />
     <ClCompile Include="..\shared\of\of_usermessages.cpp" />
     <ClCompile Include="..\shared\of\of_weapon_base.cpp" />
+    <ClCompile Include="..\shared\of\of_weapon_base_gun.cpp" />
     <ClCompile Include="..\shared\of\of_weapon_parse.cpp" />
+    <ClCompile Include="..\shared\of\of_weapon_smg.cpp" />
     <ClCompile Include="..\shared\predicted_viewmodel.cpp" />
     <ClCompile Include="..\shared\teamplay_gamerules.cpp" />
     <ClCompile Include="..\shared\teamplay_round_timer.cpp" />
@@ -585,6 +589,7 @@ exit 1
     <ClCompile Include="..\shared\obstacle_pushaway.cpp" />
     <ClCompile Include="of\c_of_player.cpp" />
     <ClCompile Include="of\c_of_team.cpp" />
+    <ClCompile Include="of\c_te_firebullets.cpp" />
     <ClCompile Include="of\of_clientmode.cpp" />
     <ClCompile Include="of\of_hud_chat.cpp" />
     <ClCompile Include="of\of_in_main.cpp" />
@@ -1502,12 +1507,16 @@ exit 1
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\Multiplayer\multiplayer_animstate.h" />
+    <ClInclude Include="..\shared\of\of_fx_shared.h" />
     <ClInclude Include="..\shared\of\of_gamemovement.h" />
     <ClInclude Include="..\shared\of\of_gamerules.h" />
+    <ClInclude Include="..\shared\of\of_objectiveresource.h" />
     <ClInclude Include="..\shared\of\of_playeranimstate.h" />
     <ClInclude Include="..\shared\of\of_shareddefs.h" />
     <ClInclude Include="..\shared\of\of_weapon_base.h" />
+    <ClInclude Include="..\shared\of\of_weapon_base_gun.h" />
     <ClInclude Include="..\shared\of\of_weapon_parse.h" />
+    <ClInclude Include="..\shared\of\of_weapon_smg.h" />
     <ClInclude Include="..\shared\predicted_viewmodel.h" />
     <ClInclude Include="..\shared\teamplay_round_timer.h" />
     <ClInclude Include="achievement_notification_panel.h" />

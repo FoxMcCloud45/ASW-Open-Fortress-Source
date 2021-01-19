@@ -4,6 +4,10 @@
 //
 // $NoKeywords: $
 //=============================================================================//
+
+// Fox_McCloud45 modifications
+// * Integrated Open Fortress equivalent changes (no license header provided there).
+
 #include "cbase.h"
 #include <KeyValues.h>
 #include <tier0/mem.h>
@@ -159,6 +163,33 @@ void ResetFileWeaponInfoDatabase( void )
 #endif
 }
 #endif
+
+#if defined( OF_CLIENT_DLL ) || defined( OF_DLL )
+void ResetFileWeaponInfoDatabase( void )
+{
+	for( unsigned int i = 0; i < m_WeaponInfoDatabase.Count(); i++ )
+	{
+		WEAPON_FILE_INFO_HANDLE hHandle = i;
+		ReadWeaponDataFromFileForSlot( filesystem, m_WeaponInfoDatabase[i]->szClassName, &hHandle, g_pGameRules->GetEncryptionKey() );
+	}
+#ifdef _DEBUG
+	memset(g_bUsedWeaponSlots, 0, sizeof(g_bUsedWeaponSlots));
+#endif
+#ifndef GAME_DLL
+	engine->ExecuteClientCmd( "schema_reload_weapons_server" );
+#endif
+}
+
+static ConCommand schema_reload_weapons( 
+#ifdef CLIENT_DLL
+"schema_reload_weapons", 
+#else
+"schema_reload_weapons_server", 
+#endif
+ResetFileWeaponInfoDatabase, "Re-Parses weapon scripts", FCVAR_CHEAT );
+
+#endif // OF_CLIENT_DLL || OF_DLL
+
 
 void PrecacheFileWeaponInfoDatabase( IFileSystem *filesystem, const unsigned char *pICEKey )
 {

@@ -5,8 +5,9 @@
 #pragma once
 
 #include "gamerules.h"
-#include "teamplay_gamerules.h"
+#include "teamplayroundbased_gamerules.h"
 #include "gamevars_shared.h"
+#include "GameEventListener.h"
 
 #ifndef CLIENT_DLL
 #include "of_player.h"
@@ -23,17 +24,20 @@ class COFTeam;
 
 #define HUD_ALERT_SCRAMBLE_TEAMS	0
 
-class COFGameRulesProxy : public CGameRulesProxy
+class COFGameRulesProxy : public CTeamplayRoundBasedRulesProxy, public CGameEventListener
 {
 public:
-	DECLARE_CLASS( COFGameRulesProxy, CGameRulesProxy );
+	DECLARE_CLASS( COFGameRulesProxy, CTeamplayRoundBasedRulesProxy );
 	DECLARE_NETWORKCLASS();
+
+	// CGameEventListener::
+	virtual void FireGameEvent( IGameEvent *pEvent ) override;
 };
 
-class COFGameRules : public CTeamplayRules
+class COFGameRules : public CTeamplayRoundBasedRules, public CGameEventListener
 {
 public:
-	DECLARE_CLASS( COFGameRules, CTeamplayRules );
+	DECLARE_CLASS( COFGameRules, CTeamplayRoundBasedRules );
 
 	 // This makes datatables able to access our private vars
 	DECLARE_NETWORKCLASS_NOBASE();
@@ -58,8 +62,8 @@ public:
 #ifdef GAME_DLL
 	void TeamPlayerCountChanged(COFTeam *);
 #endif
-
-	virtual bool IsPlayingSpecialDeliveryMode( void );
+	// CTeamplayRoundBasedRules in Swarm engine doesn't implement FireGameEvent.
+	virtual void FireGameEvent (IGameEvent *) override;
 };
 
 inline COFGameRules* OFGameRules()

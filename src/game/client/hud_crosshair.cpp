@@ -30,10 +30,7 @@ using namespace vgui;
 
 int ScreenTransform( const Vector& point, Vector& screen );
 
-// Open Fortress uses CHudOFCrosshair, derived from CHudCrosshair.
-#if !defined( OF_CLIENT_DLL )
 DECLARE_HUDELEMENT( CHudCrosshair );
-#endif
 
 CHudCrosshair::CHudCrosshair( const char *pElementName ) :
   CHudElement( pElementName ), BaseClass( NULL, "HudCrosshair" )

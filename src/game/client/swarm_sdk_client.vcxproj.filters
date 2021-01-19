@@ -1844,6 +1844,21 @@
     <ClCompile Include="game_controls\classmenu.cpp">
       <Filter>Source Files\game_controls</Filter>
     </ClCompile>
+    <ClCompile Include="of\c_te_firebullets.cpp">
+      <Filter>Source Files\OF</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_fx_shared.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_objectiveresource.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_weapon_base_gun.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\of\of_weapon_smg.cpp">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="achievement_notification_panel.h">
@@ -4026,6 +4041,18 @@
     </ClInclude>
     <ClInclude Include="of\vcreditspage.h">
       <Filter>Source Files\OF</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_fx_shared.h">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_objectiveresource.h">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_weapon_base_gun.h">
+      <Filter>Source Files\OF\Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\of\of_weapon_smg.h">
+      <Filter>Source Files\OF\Shared</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
